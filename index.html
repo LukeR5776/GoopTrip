@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Green Mountain Road Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: a fixed 1600x900 film frame. Map docked left (620px), chapter stage right, playback bar below. */
+  --night:#0e1714; --panel:#13211d; --line:#2a4037;
+  --forest:#2e5141; --lake:#4f7a96; --ice:#a9cbe0; --snow:#eef2ec; --amber:#e2a23b; --rust:#d46e48;
+  --dim:#9fb0a7; --faint:#62756b;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Newsreader",Georgia,"Times New Roman",serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--night);color:var(--snow)}
+body{font-family:var(--body);overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column}
+#wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+#stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;background:var(--night);overflow:hidden}
+
+/* map */
+#mapBox{position:absolute;left:0;top:0;width:620px;height:900px;overflow:hidden;border-right:1px solid var(--line)}
+#map{position:absolute;inset:0;width:620px;height:900px}
+.st{stroke:#3d584b;stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.trip{fill:#1c3129}.other{fill:#15231e}
+.water{fill:#1f394a}.river{fill:none;stroke:#2b5068;stroke-width:1.4;vector-effect:non-scaling-stroke}
+.relief{fill:#27402f;opacity:.55}
+.lbl text{font-family:var(--display);fill:#6f857a}
+.lbl .state{font-size:12px;font-weight:600;letter-spacing:.32em}
+.lbl .wtr{font-family:var(--body);font-style:italic;font-size:12px;fill:#55809b}
+.lbl .mtn{font-family:var(--body);font-style:italic;font-size:12px;fill:#7c9a83}
+.lbl .city{font-size:11px;letter-spacing:.06em;fill:#62756b}
+.pin text{font-family:var(--display);font-weight:600;font-size:15px;fill:var(--snow);paint-order:stroke;stroke:#0e1714;stroke-width:4px;stroke-linejoin:round}
+.pin text.sub{font-weight:500;font-size:12px;fill:var(--dim);letter-spacing:.04em}
+.leg{fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+#mapHud{position:absolute;left:18px;top:18px;width:196px;background:var(--night);border:1px solid var(--line);padding:12px 14px 10px;display:grid;gap:8px}
+.ctr{display:flex;justify-content:space-between;align-items:baseline}
+.ctr span{font:600 11px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.ctr b{font:500 26px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--snow)}
+.ctr b small{font-size:14px;color:var(--dim);margin-left:2px}
+#mapFoot{position:absolute;left:18px;bottom:16px;right:18px;display:flex;justify-content:space-between;align-items:flex-end;font:500 11px/1.2 var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+#scaleBar{height:6px;border:1px solid var(--dim);border-top:none;margin-top:4px}
+
+/* hud */
+#hud{position:absolute;left:660px;top:26px;width:900px;height:60px;display:flex;justify-content:space-between;align-items:center}
+#hudDay{display:flex;flex-direction:column;gap:5px}
+#hudDay .d{font:600 14px/1 var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--dc,var(--amber))}
+#hudDay .th{font:italic 400 19px/1 var(--body);color:var(--dim)}
+#hudClock{display:flex;align-items:center;gap:16px;transition:opacity .3s}
+#clock{font:500 40px/1 var(--display);font-variant-numeric:tabular-nums;min-width:132px;text-align:right}
+#tl{position:absolute;left:660px;top:822px;width:900px;height:62px}
+
+/* scenes */
+.scene{position:absolute;left:660px;top:100px;width:900px;height:700px;opacity:0;pointer-events:none}
+.scene.on{pointer-events:auto}
+.ill{position:absolute;left:0;top:0;display:block;border-radius:3px}
+.txt{position:absolute;left:0;top:388px;width:900px;display:grid;grid-template-columns:1.18fr 1fr;gap:44px;align-items:start}
+.kicker{font:600 15px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--dc)}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font:600 54px/1 var(--display);margin:12px 0 14px;letter-spacing:.005em;color:var(--snow)}
+.p{font:400 21px/1.42 var(--body);color:var(--dim);margin:0;max-width:31em}
+.facts{display:flex;flex-wrap:wrap;gap:18px 34px}
+.fact b{display:block;font:500 40px/1 var(--display);color:var(--snow);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fact span{display:block;margin-top:6px;font:600 12px/1.25 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.list li{font:500 21px/1.2 var(--display);letter-spacing:.02em;display:flex;gap:12px;align-items:baseline}
+.list li::before{content:"";flex:none;width:14px;height:2px;background:var(--dc);transform:translateY(-6px)}
+.sched{display:grid;grid-template-columns:118px 1fr;gap:9px 14px;align-items:baseline}
+.sched .tm{font:600 17px/1.2 var(--display);letter-spacing:.04em;color:var(--dc);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sched .ac{font:400 18px/1.25 var(--body);color:var(--snow)}
+.addr{margin-top:18px;font:500 15px/1.4 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.note{border-left:3px solid var(--rust);padding:2px 0 2px 14px;font:400 17px/1.4 var(--body);color:var(--snow)}
+.shields{display:flex;gap:10px;align-items:center;margin-top:22px;font:600 13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.shields svg{display:block}
+.dayslate{position:absolute;left:0;top:0;width:900px;height:360px;background:var(--night);display:flex;flex-direction:column;justify-content:center;padding-left:6px;gap:12px;z-index:3}
+.dayslate .n{font:600 16px/1 var(--display);letter-spacing:.3em;text-transform:uppercase;color:var(--dc)}
+.dayslate .d{font:500 84px/0.95 var(--display);color:var(--snow)}
+.dayslate .th{font:italic 400 26px/1 var(--body);color:var(--dim)}
+svg text{font-family:var(--display)}
+.stn{font-size:12px;font-weight:700;fill:#1d2b26}
+.stl{font-size:15px;font-weight:600;fill:#1d2b26;letter-spacing:.02em}
+.ax{font-size:12px;fill:#6c8077;letter-spacing:.06em}
+.chartlbl{font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;fill:#9fb0a7}
+
+/* intro */
+#sc-intro .titleblock{position:absolute;left:40px;top:44px;width:620px}
+#sc-intro h1{font:600 96px/.92 var(--display);letter-spacing:-.005em;color:var(--snow);margin:16px 0 18px}
+#sc-intro .sub{font:italic 400 26px/1.3 var(--body);color:#cfd9d3}
+#sc-intro .stats{position:absolute;left:40px;right:30px;top:566px;display:flex;justify-content:space-between;gap:12px}
+#sc-intro .stats .fact b{font-size:40px}#sc-intro .stats .fact span{font-size:11px}
+
+/* safety */
+.grid6{position:absolute;left:0;top:92px;width:900px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);padding:14px 15px 12px;min-height:168px}
+.card h3{display:flex;align-items:center;gap:10px;font:600 20px/1 var(--display);letter-spacing:.03em;margin-bottom:10px;color:var(--snow)}
+.card h3 svg{flex:none}
+.card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.card li{font:400 14.5px/1.28 var(--body);color:#cad6cf;padding-left:18px;position:relative}
+.card li::before{content:"";position:absolute;left:0;top:8px;width:9px;height:5px;border-left:2px solid var(--amber);border-bottom:2px solid var(--amber);transform:rotate(-45deg)}
+.disclaimer{position:absolute;left:0;top:678px;width:900px;font:italic 400 15px/1.35 var(--body);color:var(--dim)}
+
+/* budget */
+.brow{display:grid;grid-template-columns:210px 480px 1fr;align-items:center;gap:18px;height:50px;border-bottom:1px solid var(--line)}
+.brow .bl{font:500 20px/1 var(--display);letter-spacing:.02em}
+.btrack{position:relative;height:14px;background:#17271f}
+.bbar{position:absolute;top:0;height:14px;transform-origin:left center}
+.brow .bv{font:500 22px/1 var(--display);font-variant-numeric:tabular-nums;text-align:right}
+.btot{display:flex;gap:56px;margin-top:26px}
+.why{position:absolute;left:0;top:132px;width:900px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.why h3{font:600 26px/1.05 var(--display);padding-top:14px;border-top:3px solid var(--dc);margin-bottom:12px}
+.why ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.why li{font:400 18px/1.35 var(--body);color:#cad6cf}
+#sc-final .big{position:absolute;left:0;top:60px;font:600 116px/.92 var(--display);letter-spacing:-.01em}
+#sc-final .big div:nth-child(1){color:var(--amber)}#sc-final .big div:nth-child(2){color:var(--ice)}#sc-final .big div:nth-child(3){color:var(--rust)}
+#sc-final .meta{position:absolute;left:0;top:430px;width:860px}
+#sc-final .route{font:500 22px/1.4 var(--display);letter-spacing:.06em;color:var(--snow);text-transform:uppercase;margin:16px 0 22px}
+#sc-final .tag{font:italic 400 28px/1.3 var(--body);color:#cfd9d3}
+
+#grain{position:absolute;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay}
+#snow{position:absolute;left:0;top:0;width:1600px;height:900px;pointer-events:none}
+
+/* controls */
+#bar{height:66px;flex:none;display:flex;align-items:center;gap:6px;padding:0 14px;background:#0a110f;border-top:1px solid var(--line)}
+.btn{flex:none;width:40px;height:40px;border:1px solid transparent;border-radius:4px;background:transparent;color:var(--snow);display:grid;place-items:center;cursor:pointer;padding:0}
+.btn:hover{background:#15231e;border-color:var(--line)}
+.btn:focus-visible,.tbtn:focus-visible,#scrub:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.tbtn{flex:none;height:36px;padding:0 14px;border:1px solid var(--line);border-radius:4px;background:#13211d;color:var(--snow);font:600 14px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.tbtn:hover{border-color:var(--dim)}
+#scrubWrap{flex:1;min-width:120px;position:relative;height:50px;margin:0 10px}
+#scrub{position:absolute;left:0;right:0;top:18px;height:24px;cursor:pointer}
+#scrubTrack{position:absolute;left:0;right:0;top:10px;height:4px;background:#22342c}
+#scrubFill{position:absolute;left:0;top:10px;height:4px;background:var(--amber);width:0}
+#scrubKnob{position:absolute;top:5px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--snow);border:3px solid var(--night)}
+#chaps{position:absolute;left:0;right:0;top:0;height:18px}
+.chap{position:absolute;top:0;height:18px;border-left:1px solid #2f463c;padding-left:6px;font:600 11px/18px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);background:none;border-top:none;border-right:none;border-bottom:none;cursor:pointer;white-space:nowrap;overflow:hidden;text-align:left}
+.chap.cur{color:var(--snow)}
+.chap:hover{color:var(--dim)}
+#time{flex:none;font:500 15px/1 var(--display);font-variant-numeric:tabular-nums;color:var(--dim);min-width:86px;text-align:center}
+
+/* plan drawer */
+#plan{position:fixed;top:0;right:0;height:100%;width:min(560px,100%);background:#0b1311;border-left:1px solid var(--line);transform:translateX(102%);transition:transform .35s ease;overflow-y:auto;z-index:20}
+#plan.open{transform:none}
+#plan .in{padding:28px 32px 60px}
+#plan header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px}
+#plan h2{font-size:40px;margin:6px 0 4px}
+#plan h3{font:600 22px/1.1 var(--display);letter-spacing:.04em;margin:30px 0 10px;padding-top:14px;border-top:1px solid var(--line);color:var(--snow)}
+#plan h4{font:600 14px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin:18px 0 8px}
+#plan p,#plan li{font:400 16.5px/1.5 var(--body);color:#cad6cf}
+#plan ul{padding-left:20px;margin:6px 0}
+#plan table{width:100%;border-collapse:collapse;margin:6px 0}
+#plan td,#plan th{text-align:left;padding:7px 8px 7px 0;border-bottom:1px solid #1e3029;font:400 16px/1.35 var(--body);color:#cad6cf;vertical-align:top}
+#plan th{font:600 12px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+#plan td.t{font:600 15px/1.35 var(--display);letter-spacing:.04em;color:var(--snow);white-space:nowrap;font-variant-numeric:tabular-nums}
+#plan td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#plan a{color:var(--ice)}
+#plan .muted{color:var(--dim);font-style:italic}
+@media (max-width:640px){#bar{flex-wrap:wrap;height:auto;padding:8px}#scrubWrap{order:9;flex-basis:100%;margin:0}#time{min-width:0}}
+@media (prefers-reduced-motion:reduce){#plan{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="wrap">
+    <div id="stage" aria-label="Animated road trip proposal">
+      <div id="mapBox">
+        <svg id="map" viewBox="0 0 620 900" preserveAspectRatio="xMidYMid slice" aria-label="Map of the route through Connecticut, Vermont and Massachusetts"></svg>
+        <div id="mapHud">
+          <div class="ctr"><span>Miles</span><b id="cMi">0</b></div>
+          <div class="ctr"><span>Driving</span><b id="cDr">0<small>h</small></b></div>
+          <div class="ctr"><span>Climbed</span><b id="cEl">0<small>ft</small></b></div>
+        </div>
+        <div id="mapFoot">
+          <div><div id="scaleTxt">50 miles</div><div id="scaleBar" style="width:100px"></div></div>
+          <div style="text-align:right">Route lines are indicative<br>Live navigation picks the final roads</div>
+        </div>
+      </div>
+      <div id="hud">
+        <div id="hudDay"><div class="d" id="hDay">November 21–23, 2026</div><div class="th" id="hTheme">A three-day plan</div></div>
+        <div id="hudClock">
+          <svg width="150" height="52" viewBox="0 0 150 52" aria-hidden="true">
+            <path d="M12,40 H138" stroke="#2a4037" stroke-width="1"/>
+            <path d="M15,40 A60,30 0 0 1 135,40" fill="none" stroke="#3a5447" stroke-width="1.5" stroke-dasharray="2 4"/>
+            <circle id="sunDot" cx="15" cy="40" r="6" fill="#e2a23b"/>
+            <text id="sunR" x="15" y="51" font-size="10.5" fill="#62756b" text-anchor="middle">6:54</text>
+            <text id="sunS" x="135" y="51" font-size="10.5" fill="#62756b" text-anchor="middle">4:18</text>
+          </svg>
+          <div id="clock">6:45 AM</div>
+        </div>
+      </div>
+      <div id="scenes"></div>
+      <svg id="tl" viewBox="0 0 900 62" aria-hidden="true"></svg>
+      <canvas id="snow" width="1600" height="900"></canvas>
+      <div id="grain"></div>
+    </div>
+  </div>
+  <div id="bar">
+    <button class="btn" id="bPrev" aria-label="Previous chapter" title="Previous chapter (←)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 4v12M16 4 8 10l8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+    <button class="btn" id="bPlay" aria-label="Pause" title="Play / pause (space)"><svg width="20" height="20" viewBox="0 0 20 20" id="playIco"></svg></button>
+    <button class="btn" id="bNext" aria-label="Next chapter" title="Next chapter (→)"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M15 4v12M4 4l8 6-8 6z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+    <button class="btn" id="bReplay" aria-label="Replay from the start" title="Replay"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4.5 10a5.5 5.5 0 1 0 1.8-4.1"/><path d="M4 3.5v3.6h3.6"/></svg></button>
+    <div id="scrubWrap">
+      <div id="chaps"></div>
+      <div id="scrub" role="slider" tabindex="0" aria-label="Playback position" aria-valuemin="0" aria-valuemax="115" aria-valuenow="0">
+        <div id="scrubTrack"></div><div id="scrubFill"></div><div id="scrubKnob"></div>
+      </div>
+    </div>
+    <div id="time">0:00 / 1:55</div>
+    <button class="tbtn" id="bSpeed" aria-label="Playback speed" title="Playback speed">1×</button>
+    <button class="tbtn" id="bPlan" aria-expanded="false" aria-controls="plan">Full plan</button>
+  </div>
+</div>
+
+<aside id="plan" aria-label="Full trip plan" aria-hidden="true">
+  <div class="in">
+    <header>
+      <div><div class="kicker" style="--dc:var(--amber)">November 21–23, 2026 · West Hartford, CT</div><h2>The full plan</h2></div>
+      <button class="btn" id="bClose" aria-label="Close the plan"><svg width="20" height="20" viewBox="0 0 20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg></button>
+    </header>
+    <p>Three days, two nights, two travelers, three states. Two self-guided college visits (University of Vermont and Williams College) and two summit goals (Mount Mansfield, conditional, and Mount Greylock). About 500–550 miles and 10–11.5 hours of driving.</p>
+
+    <h3>Day 1 · Saturday, November 21</h3>
+    <p class="muted">West Hartford → Burlington → Stowe</p>
+    <table>
+      <tr><td class="t">6:45 AM</td><td>Depart West Hartford. I-84 W / I-91 N to White River Junction, I-89 N to Burlington. 215–225 mi, 3 h 45 m–4 h, one optional rest stop.</td></tr>
+      <tr><td class="t">10:45 AM</td><td>Burlington, about 75 minutes: Church Street Marketplace, Lake Champlain waterfront, downtown shops and cafés.</td></tr>
+      <tr><td class="t">12:00 PM</td><td>Lunch at Hong's Chinese Dumplings, 77 Pearl Street (12:00–12:45). Saturday hours listed as 12:00–7:00 PM.</td></tr>
+      <tr><td class="t">1:00 PM</td><td>University of Vermont, self-guided and outdoors (1:00–3:00): University Green, Waterman Building, Old Mill, Bailey/Howe Library, Davis Center, Redstone Campus, athletic facilities. No building access or admissions staff assumed.</td></tr>
+      <tr><td class="t">3:00 PM</td><td>Drive to Stowe: I-89 S, Exit 10 (Waterbury/Stowe), VT 100 N. 35–40 mi, 45–55 min.</td></tr>
+      <tr><td class="t">4:00 PM</td><td>Check in at Commodores Inn, 823 South Main Street, Stowe. 5:00–6:30 Stowe Village and dinner; 6:30–7:30 prepare hiking gear; 8:30 sleep.</td></tr>
+    </table>
+    <p class="muted">Saturday driving: about 250–265 mi and 4.5–5 hours, including local travel.</p>
+
+    <h3>Day 2 · Sunday, November 22</h3>
+    <p class="muted">Mount Mansfield → Williamstown</p>
+    <table>
+      <tr><td class="t">5:30 AM</td><td>Wake up, breakfast, mountain forecast, gear.</td></tr>
+      <tr><td class="t">6:15 AM</td><td>Depart for the authorized Mount Mansfield access point at Stowe Mountain Resort (15–20 min).</td></tr>
+      <tr><td class="t">6:35 AM</td><td>Check uphill permissions, trail and parking restrictions, wind, temperature, visibility, snow and ice. Stowe Mountain Resort: 802-253-3690. No closed or unauthorized ski trails. Do not assume Route 108 through Smugglers' Notch is open.</td></tr>
+      <tr><td class="t">7:00 AM</td><td>Begin the summit attempt. Mount Mansfield, 4,393 ft, Vermont's highest point (the Chin).</td></tr>
+      <tr><td class="t">10:30 AM</td><td>Target summit and firm reassessment.</td></tr>
+      <tr><td class="t">11:00 AM</td><td>Turnaround deadline.</td></tr>
+      <tr><td class="t">12:30–1:30</td><td>Expected return to the trailhead. Dry clothes, lunch, water, vehicle check.</td></tr>
+      <tr><td class="t">2:00 PM</td><td>Drive to Williamstown, 120–140 mi, 2 h 30 m–3 h 15 m, on a winter-maintained route chosen by live navigation.</td></tr>
+      <tr><td class="t">5:00 PM</td><td>Check in at Williamstown Motel, 295 Main Street. 5:30–6:30 dinner; 6:30–7:30 prepare for Greylock; 8:30 sleep.</td></tr>
+    </table>
+    <p>For reference, the Long Trail South approach is about 4.7 miles round trip with 2,790 ft of gain, roughly 5 hours in normal conditions. Winter can add a lot of time. The actual route depends on authorized access and conditions. Sunrise is about 6:55 AM and sunset about 4:17 PM; finishing by 1:30 leaves close to three hours of daylight.</p>
+    <p><strong>The summit is conditional.</strong> If access is prohibited, visibility is poor, winds are excessive, or conditions exceed demonstrated skills and equipment, the summit attempt is cancelled for a lower-risk Stowe-area hike, and the rest of the trip goes ahead.</p>
+    <p class="muted">Sunday driving: about 140–160 mi and 3–3.5 hours, including local travel.</p>
+
+    <h3>Day 3 · Monday, November 23</h3>
+    <p class="muted">Williams College → Mount Greylock → West Hartford</p>
+    <table>
+      <tr><td class="t">6:30 AM</td><td>Wake up, breakfast, check out, pack the car.</td></tr>
+      <tr><td class="t">7:15 AM</td><td>Williams College, self-guided (7:15–8:30), starting at Weston Hall as the college recommends: Main Quad, Thompson Memorial Chapel, Sawyer Library, Paresky Center, Spring Street, athletic facilities. Campus map downloaded in advance; buildings may not be open yet.</td></tr>
+      <tr><td class="t">8:30 AM</td><td>Drive to the Hopper Road trailhead (10–15 min).</td></tr>
+      <tr><td class="t">8:45 AM</td><td>Begin Mount Greylock via the Hopper Trail. 3,491 ft, Massachusetts' highest point.</td></tr>
+      <tr><td class="t">11:15 AM</td><td>Target summit: Veterans War Memorial, photos, short break.</td></tr>
+      <tr><td class="t">11:30 AM</td><td>Turnaround deadline if the summit has not been reached.</td></tr>
+      <tr><td class="t">~2:00 PM</td><td>Back at the trailhead.</td></tr>
+      <tr><td class="t">2:15 PM</td><td>Drive home, 110–125 mi, 2 h 15 m–2 h 45 m.</td></tr>
+      <tr><td class="t">4:30–5:00</td><td>Arrive in West Hartford.</td></tr>
+    </table>
+    <p>From the Hopper Road trailhead (open year-round), the state's trail mileages put the summit 4.1 miles away: 2.4 miles to the Sperry Road campground, then 1.7 miles on to the summit. That makes about 8.2 miles round trip with roughly 2,400 ft of gain. The summit auto road closes after October 30, so the summit is reached on foot, and the memorial tower is closed for the season. Blaze orange on both hikes: it is hunting season.</p>
+
+    <h3>Driving</h3>
+    <table>
+      <tr><th>Day</th><th>Route</th><th style="text-align:right">Wheel time</th></tr>
+      <tr><td class="t">Sat</td><td>West Hartford → Burlington → Stowe</td><td class="n">4.5–5 h</td></tr>
+      <tr><td class="t">Sun</td><td>Stowe → Mansfield → Williamstown</td><td class="n">3–3.5 h</td></tr>
+      <tr><td class="t">Mon</td><td>Williamstown → Greylock → West Hartford</td><td class="n">2.5–3 h</td></tr>
+      <tr><td class="t">Total</td><td>About 500–550 miles</td><td class="n">10–11.5 h</td></tr>
+    </table>
+
+    <h3>Lodging</h3>
+    <h4>Night 1 · Commodores Inn, Stowe, VT</h4>
+    <p>823 South Main Street, Stowe, VT 05672 · 802-253-7131 · <a href="https://commodoresinn.com/">commodoresinn.com</a>. Indoor lodging, close to Mount Mansfield, free parking advertised. Estimate $150–300 before taxes. Check-in age to be confirmed before booking.</p>
+    <h4>Night 2 · Williamstown Motel, Williamstown, MA</h4>
+    <p>295 Main Street, Williamstown, MA 01267 · 413-458-5202 · <a href="https://williamstownmotel.com/">williamstownmotel.com</a>. Indoor lodging close to Williams College and Mount Greylock. Estimate $90–160 with taxes. Availability, age policy and the November rate to be confirmed directly.</p>
+
+    <h3>Budget for two</h3>
+    <table>
+      <tr><td>Gas (500–550 mi)</td><td class="n">$75–110</td></tr>
+      <tr><td>Commodores Inn</td><td class="n">$150–300</td></tr>
+      <tr><td>Williamstown Motel</td><td class="n">$90–160</td></tr>
+      <tr><td>Food and meals</td><td class="n">$100–140</td></tr>
+      <tr><td>Parking and miscellaneous</td><td class="n">$15–35</td></tr>
+      <tr><td class="t">Total</td><td class="n t">$430–745</td></tr>
+      <tr><td class="t">Per person</td><td class="n t">$215–373</td></tr>
+    </table>
+    <p class="muted">Ranges, not quotes. Lodging rates, taxes, fuel and food will vary.</p>
+
+    <h3>Safety</h3>
+    <h4>Accommodations</h4>
+    <ul><li>Two predetermined overnight locations, indoors both nights.</li><li>No improvised sleeping locations.</li><li>Parents receive both addresses and phone numbers.</li></ul>
+    <h4>Driving</h4>
+    <ul><li>Vehicle checked before departure; winter-ready tires and windshield equipment.</li><li>Full tank before mountain travel; navigation downloaded offline.</li><li>No driving after 11 PM.</li><li>The passenger handles navigation and music; no phone use by the driver.</li></ul>
+    <h4>Winter hiking equipment</h4>
+    <ul><li>Winter hiking boots, insulated layers, waterproof shell, gloves and backup gloves.</li><li>Traction matched to actual conditions. Microspikes are not enough for steep, hard ice; crampons and an ice axe only where required and only with demonstrated training.</li><li>Headlamps, offline maps and compass, first aid and emergency insulation, food and water reserves.</li></ul>
+    <h4>Weather and mountain decisions</h4>
+    <ul><li>Mountain forecasts checked before both hikes; Stowe uphill permissions confirmed.</li><li>Fixed turnaround times. We do not separate.</li><li>The Mansfield summit is cancelled if weather, access or technical conditions are unsafe.</li><li>Off both mountains well before sunset.</li></ul>
+    <h4>Parent communication</h4>
+    <ul><li>Check-ins: leaving West Hartford, arriving in Burlington, finishing UVM, checking in at the Commodores Inn, starting and finishing Mansfield, checking in at the Williamstown Motel, finishing Williams, finishing Greylock, arriving home.</li><li>Live location shared the whole trip, with a backup plan if there is no cell service.</li></ul>
+    <h4>Emergencies</h4>
+    <ul><li>911. Both travelers carry charged phones, power banks and offline maps.</li><li>First-aid kit, parent emergency contacts, roadside assistance information.</li><li>Both travelers know the itinerary and the planned alternatives.</li></ul>
+    <p class="muted">Winter summits are conditional on access, weather and demonstrated technical ability. A safe alternative is always better than forcing a summit.</p>
+
+    <h3>To confirm before booking</h3>
+    <ul>
+      <li>Check-in age policy at both properties, plus availability and November rates.</li>
+      <li>Stowe Mountain Resort's 2026–27 uphill access routes for November 22 (802-253-3690).</li>
+      <li>Connecticut teen-driver passenger and curfew rules, if the driver is under 18.</li>
+      <li>Route 108 status and the mountain forecast on the morning of each hike.</li>
+      <li>Traction gear matched to the conditions reported that week.</li>
+    </ul>
+
+    <h3>Sources</h3>
+    <ul>
+      <li><a href="https://loveburlington.org/hongs-chinese-dumplings">Hong's Chinese Dumplings</a></li>
+      <li><a href="https://www.uvm.edu/">University of Vermont</a></li>
+      <li><a href="https://commodoresinn.com/">Commodores Inn</a></li>
+      <li><a href="https://www.stowe.com/the-mountain/about-the-mountain/uphill-access-policy.aspx">Stowe Mountain Resort uphill access policy</a></li>
+      <li><a href="https://news.vailresorts.com/VT-Resorts-Target-Nov-21-Opening">Stowe 2026–27 opening announcement</a></li>
+      <li><a href="https://www.williams.edu/admission-aid/visit-and-connect/visit-campus/">Williams College campus visits</a></li>
+      <li><a href="https://williamstownmotel.com/">Williamstown Motel</a></li>
+      <li><a href="https://www.mass.gov/locations/mount-greylock-state-reservation">Mount Greylock State Reservation</a></li>
+      <li><a href="https://www.mass.gov/doc/hiking-trail-mileages-mount-greylock-state-reservation/download">Mount Greylock trail mileages (Mass.gov)</a></li>
+      <li><a href="https://portal.ct.gov/dmv/licenses-permits-ids/teen-drivers-license/driver-restrictions-teens">Connecticut DMV teen driver restrictions</a></li>
+      <li><a href="https://gostowe.com/sites/default/files/2025-05/Stowe-Hiking-Guide-Digital-_0.pdf">Stowe hiking guide</a></li>
+    </ul>
+  </div>
+</aside>
+
+<script>
+(()=>{
+// ---------- helpers ----------
+const $=s=>document.querySelector(s);
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const eio=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+const eout=u=>1-Math.pow(1-u,3);
+const eback=u=>{const c=1.4;return 1+(c+1)*Math.pow(u-1,3)+c*Math.pow(u-1,2)};
+const frac=v=>v-Math.floor(v);
+const r1=v=>Math.round(v*10)/10;
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pw(keys,t){if(t<=keys[0][0])return keys[0][1];for(let i=1;i<keys.length;i++){if(t<=keys[i][0]){const[a,va]=keys[i-1],[b,vb]=keys[i];return b===a?vb:va+(vb-va)*((t-a)/(b-a))}}return keys[keys.length-1][1]}
+function hex(c){c=c.replace('#','');return[parseInt(c.slice(0,2),16),parseInt(c.slice(2,4),16),parseInt(c.slice(4,6),16)]}
+function mix(a,b,u){const A=hex(a),B=hex(b);return'#'+A.map((v,i)=>Math.round(lerp(v,B[i],clamp(u))).toString(16).padStart(2,'0')).join('')}
+function fmtClock(m){m=Math.round(m);let h=Math.floor(m/60),mm=m%60;const ap=h>=12?'PM':'AM';h=h%12||12;return`${h}:${String(mm).padStart(2,'0')} ${ap}`}
+const fmtN=v=>Math.round(v).toLocaleString('en-US');
+const C={amber:'#e2a23b',ice:'#a9cbe0',rust:'#d46e48',snow:'#eef2ec',night:'#0e1714'};
+const DAYC={1:C.amber,2:C.ice,3:C.rust};
+const DUR=115;
+
+// ---------- landscape generators ----------
+function ridge(seed,{y=200,amp=60,step=5,freqs=[.006,.015,.042],amps=[1,.45,.16],sharp=false,w=900}={}){
+  const r=rng(seed),ph=freqs.map(()=>r()*6.283),tot=amps.reduce((a,b)=>a+b,0),pts=[];
+  for(let x=-30;x<=w+30;x+=step){let h=0;freqs.forEach((f,i)=>{let s=Math.sin(x*f+ph[i]);if(sharp&&i<2)s=1-2*Math.abs(Math.sin((x*f+ph[i])*.5));h+=amps[i]*s});pts.push([x,y-amp*h/tot])}
+  return pts;
+}
+const ridgeD=(pts,H)=>`M-30,${H}L${pts.map(p=>r1(p[0])+','+r1(p[1])).join('L')}L930,${H}Z`;
+function capD(pts,level,k=.55,seed=3){const r=rng(seed),top=[],bot=[];for(const[x,y]of pts){const d=Math.max(0,level-y);top.push(r1(x)+','+r1(y));bot.push(r1(x)+','+r1(y+(d>0?d*k+r()*d*.3:0)))}return'M'+top.join('L')+'L'+bot.reverse().join('L')+'Z'}
+function spruceD(x,y,h){const w=h*.42,f=r1;return`M${f(x)},${f(y-h)}L${f(x+w*.45)},${f(y-h*.6)}L${f(x+w*.28)},${f(y-h*.6)}L${f(x+w*.75)},${f(y-h*.27)}L${f(x+w*.45)},${f(y-h*.27)}L${f(x+w)},${f(y)}L${f(x-w)},${f(y)}L${f(x-w*.45)},${f(y-h*.27)}L${f(x-w*.75)},${f(y-h*.27)}L${f(x-w*.28)},${f(y-h*.6)}L${f(x-w*.45)},${f(y-h*.6)}Z`}
+function tipD(x,y,h){const w=h*.42,f=r1;return`M${f(x)},${f(y-h)}L${f(x+w*.36)},${f(y-h*.68)}L${f(x-w*.36)},${f(y-h*.68)}Z`}
+function forestD(pts,seed,n,hmin,hmax,sink=3){const r=rng(seed);let d='',s='';for(let i=0;i<n;i++){const[x,y]=pts[Math.floor(r()*pts.length)];const h=hmin+r()*(hmax-hmin);d+=spruceD(x,y+sink,h);s+=tipD(x,y+sink,h)}return[d,s]}
+function crSample(K,n=10){const out=[];for(let i=0;i<K.length-1;i++){const p0=K[i-1]||K[i],p1=K[i],p2=K[i+1],p3=K[i+2]||p2;for(let j=0;j<n;j++){const t=j/n,t2=t*t,t3=t2*t;out.push([0,1].map(k=>.5*((2*p1[k])+(-p0[k]+p2[k])*t+(2*p0[k]-5*p1[k]+4*p2[k]-p3[k])*t2+(-p0[k]+3*p1[k]-3*p2[k]+p3[k])*t3)))}}out.push(K[K.length-1]);return out}
+const lineD=pts=>'M'+pts.map(p=>r1(p[0])+','+r1(p[1])).join('L');
+function mansfieldPts(base=340,k=.085){const K=[[-30,2200],[0,2300],[70,2700],[150,3500],[235,3940],[275,3860],[335,4062],[365,3990],[430,4110],[480,4160],[525,4270],[565,4393],[605,4320],[645,4060],[700,3720],[790,3100],[900,2400],[930,2300]];return crSample(K.map(([x,e])=>[x,base-(e-2000)*k]),8)}
+function shield(n,dir,w=34){return`<svg width="${w}" height="${w}" viewBox="0 0 30 30"><path d="M3,5 Q15,1 27,5 L27,10 L3,10Z" fill="#b8333a"/><path d="M3,10 L27,10 L27,16 Q27,25 15,29 Q3,25 3,16Z" fill="#2a4f96"/><path d="M3,5 Q15,1 27,5 L27,16 Q27,25 15,29 Q3,25 3,16Z" fill="none" stroke="#eef2ec" stroke-width="1.4"/><text x="15" y="22" text-anchor="middle" font-size="${String(n).length>2?9:11}" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${n}</text></svg>`}
+function routeSign(n,w=34,shape='us'){return shape==='vt'?`<svg width="${w}" height="${w}" viewBox="0 0 30 30"><rect x="2" y="4" width="26" height="22" rx="3" fill="#eef2ec"/><rect x="4" y="6" width="22" height="18" rx="2" fill="#1f6b43"/><text x="15" y="20" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff" font-family="Barlow Condensed,sans-serif">${n}</text></svg>`:`<svg width="${w}" height="${w}" viewBox="0 0 30 30"><path d="M4,3 H26 Q26,10 28,14 Q26,26 15,28 Q4,26 2,14 Q4,10 4,3Z" fill="#eef2ec" stroke="#111" stroke-width="1.2"/><text x="15" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="#111" font-family="Barlow Condensed,sans-serif">${n}</text></svg>`}
+
+// ---------- map geography (lon, lat) ----------
+const LON0=-75.02,LATT=45.25,KY=204.5,KX=KY*Math.cos(43*Math.PI/180);
+const P=c=>[(c[0]-LON0)*KX,(LATT-c[1])*KY];
+const dPoly=(pts,close=true)=>'M'+pts.map(c=>{const p=P(c);return r1(p[0])+','+r1(p[1])}).join('L')+(close?'Z':'');
+function dSmooth(pts){const p=pts.map(P);let d=`M${r1(p[0][0])},${r1(p[0][1])}`;for(let i=0;i<p.length-1;i++){const p0=p[i-1]||p[i],p1=p[i],p2=p[i+1],p3=p[i+2]||p2;d+=`C${r1(p1[0]+(p2[0]-p0[0])/6)},${r1(p1[1]+(p2[1]-p0[1])/6)} ${r1(p2[0]-(p3[0]-p1[0])/6)},${r1(p2[1]-(p3[1]-p1[1])/6)} ${r1(p2[0])},${r1(p2[1])}`}return d}
+const CTR=[[-71.50,45.01],[-71.56,44.75],[-71.56,44.57],[-71.72,44.41],[-72.03,44.15],[-72.12,43.99],[-72.20,43.85],[-72.30,43.70],[-72.39,43.48],[-72.44,43.13],[-72.55,42.85],[-72.458,42.727]];
+const VT=[[-73.343,45.011],...CTR,[-73.265,42.746],[-73.27,43.0],[-73.25,43.57],[-73.40,43.60],[-73.41,43.80],[-73.37,44.05],[-73.33,44.25],[-73.33,44.48],[-73.36,44.70],[-73.34,44.90]];
+const MA=[[-73.265,42.746],[-72.458,42.727],[-71.90,42.71],[-71.29,42.70],[-71.15,42.81],[-70.93,42.88],[-70.82,42.87],[-70.60,42.65],[-70.92,42.52],[-71.0,42.42],[-71.05,42.33],[-70.97,42.25],[-70.88,42.22],[-70.65,41.95],[-70.53,41.77],[-70.0,41.75],[-69.95,41.67],[-70.62,41.54],[-70.80,41.63],[-70.92,41.62],[-71.08,41.50],[-71.12,41.50],[-71.14,41.66],[-71.26,41.75],[-71.34,41.80],[-71.38,42.02],[-71.80,42.01],[-73.49,42.05]];
+const CT=[[-71.80,42.01],[-73.49,42.05],[-73.55,41.29],[-73.48,41.21],[-73.73,41.10],[-73.66,40.99],[-73.54,41.04],[-73.41,41.08],[-73.18,41.16],[-72.92,41.25],[-72.68,41.27],[-72.36,41.28],[-72.09,41.31],[-71.86,41.33]];
+const RI=[[-71.80,42.01],[-71.38,42.02],[-71.34,41.80],[-71.26,41.75],[-71.14,41.66],[-71.12,41.50],[-71.20,41.45],[-71.31,41.47],[-71.45,41.43],[-71.49,41.36],[-71.86,41.31],[-71.86,41.33]];
+const NH=[...CTR.slice().reverse(),[-71.90,42.71],[-71.29,42.70],[-71.15,42.81],[-70.93,42.88],[-70.82,42.87],[-70.70,43.08],[-70.98,43.35],[-70.98,43.8],[-71.0,44.5],[-71.08,45.30]];
+const OCEAN_S=[[-74.3,40.4],[-73.80,40.83],[-73.70,40.92],[-73.66,40.99],[-73.54,41.04],[-73.41,41.08],[-73.18,41.16],[-72.92,41.25],[-72.68,41.27],[-72.36,41.28],[-72.09,41.31],[-71.86,41.33],[-71.86,41.31],[-71.49,41.36],[-71.45,41.43],[-71.43,41.62],[-71.40,41.80],[-71.30,41.70],[-71.25,41.52],[-71.20,41.45],[-71.12,41.50],[-71.08,41.50],[-70.92,41.62],[-70.80,41.63],[-70.5,41.5],[-70.5,40.4]];
+const OCEAN_E=[[-70.5,42.6],[-70.92,42.52],[-71.0,42.42],[-71.05,42.33],[-70.97,42.25],[-70.88,42.22],[-70.5,42.1]];
+const LI=[[-74.1,40.5],[-74.0,40.80],[-73.76,40.81],[-73.53,40.88],[-73.40,40.95],[-73.07,40.96],[-72.84,40.97],[-72.53,41.01],[-72.24,41.16],[-72.40,41.06],[-72.25,41.02],[-72.0,41.05],[-71.86,41.07],[-72.0,40.97],[-72.5,40.80],[-73.0,40.70],[-73.5,40.60]];
+const CHAMPLAIN=[[-73.40,43.56],[-73.39,43.80],[-73.33,44.05],[-73.25,44.25],[-73.22,44.48],[-73.25,44.60],[-73.23,44.75],[-73.10,44.95],[-73.10,45.05],[-73.35,45.05],[-73.37,44.90],[-73.42,44.70],[-73.40,44.48],[-73.40,44.25],[-73.42,44.05],[-73.43,43.80],[-73.42,43.56]];
+const LGEORGE=[[-73.71,43.42],[-73.64,43.42],[-73.41,43.84],[-73.45,43.86]];
+const HUDSON=[[-73.69,42.75],[-73.75,42.55],[-73.79,42.2],[-73.95,41.9],[-73.95,41.6],[-73.97,41.35],[-73.92,41.15],[-73.90,40.95],[-74.0,40.75]];
+const CTRIVER=[...CTR,[-72.47,42.62],[-72.58,42.50],[-72.62,42.32],[-72.62,42.18],[-72.60,42.08],[-72.63,41.92],[-72.66,41.77],[-72.65,41.56],[-72.50,41.45],[-72.35,41.28]];
+const RELIEF=[
+  [[-73.05,42.75],[-73.05,43.3],[-73.0,43.7],[-72.95,44.1],[-72.97,44.5],[-72.85,45.0],[-72.55,45.0],[-72.74,44.5],[-72.70,44.1],[-72.75,43.7],[-72.85,43.3],[-72.85,42.75]],
+  [[-73.10,42.05],[-73.10,42.75],[-72.85,42.75],[-72.92,42.05]],
+  [[-73.45,42.05],[-73.42,43.5],[-73.22,43.5],[-73.12,42.6],[-73.30,42.05]],
+  [[-75.1,43.4],[-74.4,43.3],[-73.75,43.55],[-73.55,44.0],[-73.6,44.5],[-73.9,44.8],[-74.6,44.9],[-75.1,44.6]],
+  [[-71.9,44.0],[-71.2,43.9],[-71.0,44.3],[-71.4,44.55],[-71.8,44.35]],
+  [[-74.6,41.95],[-74.05,42.0],[-74.0,42.3],[-74.5,42.45],[-75.1,42.3],[-75.1,41.9]]];
+const MAPLABELS=[
+  ['VERMONT',[-72.45,43.92],'state',0],['MASSACHUSETTS',[-72.05,42.42],'state',0],['CONNECTICUT',[-72.95,41.56],'state',0],['NEW YORK',[-74.3,42.95],'state',0],['NEW HAMPSHIRE',[-71.55,43.45],'state',0],['R.I.',[-71.62,41.72],'state',0],['QUÉBEC',[-74.2,45.14],'state',0],
+  ['Lake Champlain',[-73.50,44.10],'wtr',-76],['Long Island Sound',[-72.95,41.10],'wtr',-4],['Hudson River',[-74.05,41.75],'wtr',-82],['Connecticut River',[-72.30,43.32],'wtr',-68],
+  ['Green Mountains',[-72.98,43.42],'mtn',-77],['Berkshires',[-72.82,42.33],'mtn',-80],['Adirondacks',[-74.45,44.15],'mtn',0],['White Mountains',[-71.45,44.12],'mtn',0],['Catskills',[-74.55,42.15],'mtn',0],['Taconic Range',[-73.55,42.95],'mtn',-82]];
+const CITIES=[['Albany',[-73.76,42.65],'l'],['Boston',[-71.06,42.36],'l'],['Montpelier',[-72.58,44.26],'r'],['Springfield',[-72.59,42.10],'r']];
+
+// route legs
+const WH=[-72.742,41.762],BURL=[-73.212,44.476],INN=[-72.693,44.455],RESORT=[-72.78,44.53],MANS=[-72.814,44.544],WTOWN=[-73.204,42.712],HOPPER=[-73.205,42.662],GREY=[-73.166,42.637];
+const LEGS=[
+  {pts:[WH,[-72.68,41.78],[-72.63,41.95],[-72.59,42.10],[-72.62,42.32],[-72.60,42.59],[-72.56,42.85],[-72.47,43.14],[-72.45,43.30],[-72.40,43.48],[-72.33,43.65],[-72.45,43.78],[-72.62,43.93],[-72.64,44.10],[-72.58,44.26],[-72.75,44.34],[-72.99,44.40],[-73.10,44.45],BURL],day:1,t:[9.3,13.8]},
+  {pts:[BURL,[-73.10,44.45],[-72.99,44.40],[-72.75,44.34],[-72.73,44.40],INN],day:1,t:[28.7,31.2]},
+  {pts:[INN,[-72.72,44.49],RESORT],day:2,t:[38.6,40.2]},
+  {pts:[RESORT,[-72.72,44.49],INN,[-72.73,44.40],[-72.75,44.34],[-72.82,44.19],[-72.84,43.98],[-72.81,43.87],[-72.80,43.67],[-72.97,43.61],[-72.98,43.47],[-73.07,43.16],[-73.15,43.07],[-73.20,42.88],[-73.23,42.77],WTOWN],day:2,t:[52.7,57.2]},
+  {pts:[WTOWN,[-73.20,42.69],HOPPER],day:3,t:[67.6,68.15]},
+  {pts:[HOPPER,[-73.20,42.69],WTOWN,[-73.11,42.70],[-72.98,42.64],[-72.87,42.63],[-72.73,42.60],[-72.60,42.59],[-72.62,42.32],[-72.59,42.10],[-72.63,41.95],[-72.68,41.78],WH],day:3,t:[76.7,81.3]}];
+const HIKES=[{pts:[RESORT,[-72.80,44.537],MANS],day:2,key:'m'},{pts:[HOPPER,[-73.185,42.652],GREY],day:3,key:'g'}];
+const PINS=[
+  {id:'wh',c:WH,label:'West Hartford',side:'r',reach:-1,col:C.snow},
+  {id:'burl',c:BURL,label:'Burlington',side:'l',reach:13.8,col:C.amber},
+  {id:'stowe',c:INN,label:'Stowe',side:'r',reach:31.2,col:C.amber},
+  {id:'mans',c:MANS,label:'Mt. Mansfield',sub:'4,393 ft',side:'t',reach:46,col:C.ice,peak:1},
+  {id:'wt',c:WTOWN,label:'Williamstown',side:'l',reach:57.2,col:C.ice},
+  {id:'grey',c:GREY,label:'Mt. Greylock',sub:'3,491 ft',side:'r',reach:72.6,col:C.rust,peak:1}];
+const COLLEGES=[{c:BURL,label:'UVM',dx:9,dy:12,reach:22.5,col:C.amber},{c:WTOWN,label:'Williams',dx:-4,dy:-16,reach:62,col:C.rust}];
+
+// ---------- timing ----------
+const CLOCK=[[9,1,405],[13.8,1,645],[14.5,1,645],[18.5,1,720],[22.5,1,780],[28.5,1,900],[31.3,1,955],[31.5,1,960],[36.5,1,1230],
+  [36.5,2,330],[38.5,2,375],[40.2,2,395],[40.5,2,420],[46,2,630],[47,2,660],[51.5,2,810],[52.5,2,840],[57.2,2,1005],[62,2,1230],
+  [62,3,390],[62.6,3,435],[67.5,3,510],[68.2,3,525],[72.6,3,675],[73.4,3,695],[76.2,3,840],[76.7,3,855],[81.3,3,1005],[82,3,1010]];
+function clockAt(t){if(t<9||t>82)return null;let i=0;for(let k=0;k<CLOCK.length;k++)if(CLOCK[k][0]<=t)i=k;const a=CLOCK[i],b=CLOCK[i+1];if(b&&b[1]===a[1]&&b[0]>a[0])return{day:a[1],m:lerp(a[2],b[2],(t-a[0])/(b[0]-a[0]))};return{day:a[1],m:a[2]}}
+const SUN={1:[414,978],2:[415,977],3:[414,984]};
+const MILES=[[9.3,0],[13.8,220],[28.7,220],[31.2,258],[38.6,258],[40.2,265],[52.7,265],[57.2,395],[67.6,395],[68.15,400],[76.7,400],[81.3,518]];
+const DRIVE=[[9.3,0],[13.8,3.9],[28.7,3.9],[31.2,4.75],[38.6,4.75],[40.2,5.05],[52.7,5.05],[57.2,7.9],[67.6,7.9],[68.15,8.1],[76.7,8.1],[81.3,10.6]];
+const HIKE={m:{day:2,s:420,top:630,leave:660,end:810,gain:2790,base:1603,dist:2.35,f:u=>clamp(.5*u+.5*Math.pow(u,2.2)+.06*Math.sin(u*17)*u*(1-u))},
+            g:{day:3,s:525,top:675,leave:695,end:840,gain:2386,base:1105,dist:4.1,f:u=>clamp(1-Math.pow(1-u,1.55)+.05*Math.sin(u*14)*u*(1-u))}};
+function hikeState(key,t){const h=HIKE[key],ck=clockAt(t);let u=0,max=0;
+  if(t>82||(ck&&ck.day>h.day)){return{u:0,max:1,on:false}}
+  if(!ck||ck.day<h.day)return{u:0,max:0,on:false};
+  const m=ck.m;if(m<h.s){u=0;max=0}else if(m<h.top){u=(m-h.s)/(h.top-h.s);max=u}else if(m<h.leave){u=1;max=1}else if(m<h.end){u=1-(m-h.leave)/(h.end-h.leave);max=1}else{u=0;max=1}
+  return{u,max,on:m>=h.s&&m<=h.end}}
+const CAM=[[0,-72.948,43.05,1],[13.8,-72.948,43.05,1],[15.3,-72.98,44.47,4.2],[36.6,-72.98,44.47,4.2],[38.2,-72.78,44.50,6],[52.3,-72.78,44.50,6],[54,-72.95,43.6,1.7],[56.2,-72.95,43.6,1.7],[57.8,-73.19,42.68,6],[76.4,-73.19,42.68,6],[78,-72.95,42.25,2.2],[81.5,-72.95,42.25,2.2],[83.2,-72.948,43.05,1]];
+function camAt(t){if(t<=CAM[0][0])return CAM[0].slice(1);for(let i=1;i<CAM.length;i++){if(t<=CAM[i][0]){const a=CAM[i-1],b=CAM[i],u=eio((t-a[0])/(b[0]-a[0]));return[lerp(a[1],b[1],u),lerp(a[2],b[2],u),Math.exp(lerp(Math.log(a[3]),Math.log(b[3]),u))]}}return CAM[CAM.length-1].slice(1)}
+const CHAPTERS=[['Intro',0],['Saturday',9],['Sunday',36.5],['Monday',62],['Safety',82],['Budget',97],['Why this trip',103]];
+
+// ---------- build map ----------
+const map=$('#map');
+(function buildMap(){
+  let s=`<rect x="-3000" y="-3000" width="7000" height="7000" fill="#121e1a"/>`;
+  s+=`<path d="${dPoly(NH)}" class="st other"/><path d="${dPoly(RI)}" class="st other"/>`;
+  s+=`<path d="${dPoly(VT)}" class="st trip"/><path d="${dPoly(MA)}" class="st trip"/><path d="${dPoly(CT)}" class="st trip"/>`;
+  s+=RELIEF.map(r=>`<path d="${dSmooth([...r,r[0]])}" class="relief"/>`).join('');
+  s+=`<path d="${dPoly(OCEAN_S)}" class="water"/><path d="${dPoly(OCEAN_E)}" class="water"/><path d="${dPoly(LI)}" class="st other"/>`;
+  s+=`<path d="${dSmooth([...CHAMPLAIN,CHAMPLAIN[0]])}" class="water"/><path d="${dPoly(LGEORGE)}" class="water"/>`;
+  s+=`<path d="${dSmooth(HUDSON)}" class="river"/><path d="${dSmooth(CTRIVER)}" class="river"/>`;
+  s+=`<path d="${dPoly([[-75.5,45.01],[-71.50,45.01],[-71.08,45.30]],false)}" fill="none" stroke="#4b6559" stroke-width="1" stroke-dasharray="5 4" vector-effect="non-scaling-stroke"/>`;
+  s+=`<g class="lbl">`+MAPLABELS.map(([t,c,cl,rot])=>{const p=P(c);return`<g class="sl" data-x="${p[0]}" data-y="${p[1]}" data-r="${rot}"><text class="${cl}" text-anchor="middle">${t}</text></g>`}).join('');
+  s+=CITIES.map(([t,c,side])=>{const p=P(c);return`<g class="sl" data-x="${p[0]}" data-y="${p[1]}" data-r="0"><circle r="2.4" fill="#5f7268"/><text class="city" x="${side==='l'?-6:6}" y="4" text-anchor="${side==='l'?'end':'start'}">${t}</text></g>`}).join('')+`</g>`;
+  const loopPts=[...LEGS[0].pts,...LEGS[1].pts.slice(1),...LEGS[3].pts.slice(3),...LEGS[5].pts.slice(3)];
+  s+=`<path d="${dSmooth(loopPts)}" fill="none" stroke="#3b544a" stroke-width="1.6" stroke-dasharray="1 5" stroke-linecap="round" vector-effect="non-scaling-stroke" id="preview"/>`;
+  s+=LEGS.map((l,i)=>`<path id="leg${i}" class="leg" d="${dSmooth(l.pts)}" stroke="${DAYC[l.day]}" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/><path id="geo${i}" d="${dSmooth(l.pts)}" fill="none" stroke="none"/>`).join('');
+  s+=HIKES.map((h,i)=>`<path id="hike${i}" class="leg" d="${dSmooth(h.pts)}" stroke="${DAYC[h.day]}" stroke-width="2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/>`).join('');
+  s+=`<path id="loopHi" class="leg" d="${dSmooth(loopPts)}" stroke="#eef2ec" stroke-width="1.6" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" opacity="0"/><path id="loopGeo" d="${dSmooth(loopPts)}" fill="none" stroke="none"/>`;
+  s+=COLLEGES.map((c,i)=>`<g class="pin sl col" id="col${i}" data-x="${P(c.c)[0]}" data-y="${P(c.c)[1]}" data-r="0"><g transform="translate(${c.dx},${c.dy})"><rect x="-4.5" y="-4.5" width="9" height="9" fill="${c.col}" stroke="#0e1714" stroke-width="2"/><text x="${c.dx<0?-9:9}" y="4.5" text-anchor="${c.dx<0?'end':'start'}" class="sub" style="fill:${c.col}">${c.label}</text></g></g>`).join('');
+  s+=PINS.map(p=>{const[x,y]=P(p.c);let lab='';
+    if(p.side==='r')lab=`<text x="10" y="${p.sub?1:5}">${p.label}</text>${p.sub?`<text class="sub" x="10" y="15">${p.sub}</text>`:''}`;
+    if(p.side==='l')lab=`<text x="-10" y="5" text-anchor="end">${p.label}</text>`;
+    if(p.side==='t')lab=`<text y="-25" text-anchor="middle">${p.label}</text><text class="sub" y="-12" text-anchor="middle">${p.sub}</text>`;
+    const mk=p.peak?`<path class="mk" d="M0,-7.5L7,5L-7,5Z" fill="#0e1714" stroke="${p.col}" stroke-width="2.2" stroke-linejoin="round"/>`:`<circle class="mk" r="5.5" fill="#0e1714" stroke="${p.col}" stroke-width="2.4"/>`;
+    return`<g class="pin sl" id="pin-${p.id}" data-x="${x}" data-y="${y}" data-r="0">${mk}${lab}</g>`}).join('');
+  s+=`<g id="car"><rect x="-9" y="-5" width="18" height="10" rx="3.2" fill="#eef2ec" stroke="#0e1714" stroke-width="1.6"/><rect x="2" y="-3.6" width="3.6" height="7.2" rx="1" fill="#0e1714"/><rect x="-6.6" y="-3.6" width="2.4" height="7.2" rx="1" fill="#0e1714" opacity=".55"/></g>`;
+  map.innerHTML=s;
+})();
+const mapSL=[...map.querySelectorAll('.sl')].map(g=>({g,x:+g.dataset.x,y:+g.dataset.y,r:+g.dataset.r}));
+const legEls=LEGS.map((_,i)=>$('#leg'+i)),geoEls=LEGS.map((_,i)=>$('#geo'+i)),geoLen=geoEls.map(g=>g.getTotalLength());
+const hikeEls=HIKES.map((_,i)=>$('#hike'+i));
+const loopGeo=$('#loopGeo'),loopLen=loopGeo.getTotalLength(),loopHi=$('#loopHi');
+const car=$('#car');
+const pinEls=PINS.map(p=>({p,g:$('#pin-'+p.id),mk:$('#pin-'+p.id+' .mk')}));
+const colEls=COLLEGES.map((c,i)=>({c,g:$('#col'+i)}));
+
+// ---------- scenes ----------
+const SCN=[];
+const add=(id,t0,t1,html,update,dc)=>SCN.push({id,t0,t1,html,update,dc});
+
+// INTRO
+(function(){
+  const far=ridge(11,{y:330,amp:110,sharp:true}),mid=ridge(12,{y:405,amp:80,sharp:true,freqs:[.008,.02,.05]}),near=ridge(13,{y:470,amp:38}),fg=ridge(14,{y:528,amp:18,freqs:[.01,.03,.07]});
+  const [nf]=forestD(near,5,90,16,34),[ff]=forestD(fg,6,120,20,44,4);
+  const html=`<svg class="ill" viewBox="0 0 900 700" width="900" height="700">
+    <rect width="900" height="700" fill="#1b3042" id="iSky"/>
+    <circle id="iSun" cx="700" cy="330" r="36" fill="#e2a23b"/>
+    <g class="par" data-k="0"><path d="${ridgeD(far,700)}" fill="#4a6980"/><path d="${capD(far,300,.6,4)}" fill="#dce6ea"/></g>
+    <rect id="iMist" x="-200" y="372" width="700" height="16" rx="8" fill="#dce6ea" opacity=".08"/>
+    <g class="par" data-k="1"><path d="${ridgeD(mid,700)}" fill="#2c4b48"/><path d="${capD(mid,352,.5,7)}" fill="#c6d3d2"/></g>
+    <g class="par" data-k="2"><path d="${ridgeD(near,700)}" fill="#19302a"/><path d="${nf}" fill="#19302a"/></g>
+    <g class="par" data-k="3"><path d="${ridgeD(fg,700)}" fill="#0e1714"/><path d="${ff}" fill="#0e1714"/></g>
+  </svg>
+  <div class="titleblock">
+    <div class="kicker" data-in=".5">A three-day plan · November 21–23, 2026</div>
+    <h1 data-in=".8">The Green Mountain Road Trip</h1>
+    <div class="sub" data-in="1.3">Three days. Two colleges. Two summits. One road trip.</div>
+  </div>
+  <div class="stats">
+    ${[['3','days · 2 nights'],['2','travelers'],['3','states'],['2','college visits'],['2','summit goals'],['500–550','miles'],['10–11.5','hours driving']].map((s,i)=>`<div class="fact" data-in="${2.2+i*.22}"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}
+  </div>`;
+  add('intro',0,9,html,(L,el)=>{
+    el.q('#iSun').setAttribute('cy',r1(lerp(360,262,eout(seg(L,.2,4)))));
+    el.qa('.par').forEach(g=>{const k=+g.dataset.k;g.style.transform=`translateY(${r1((1-eout(seg(L,.1+k*.2,1.7+k*.2)))*(70-k*10))}px)`});
+    el.q('#iMist').setAttribute('x',r1(-200+L*22));
+  },C.amber);
+})();
+
+// ROAD SCENES
+function roadScene(id,cfg){
+  const HY=175,H=360,hA=ridge(cfg.seedA,{y:HY+4,amp:cfg.ampA,sharp:cfg.sharpA,step:6}),hB=ridge(cfg.seedB,{y:HY+4,amp:cfg.ampB,sharp:cfg.sharpB,step:6});
+  let trees='';for(let i=0;i<18;i++){const dec=cfg.dec&&i%3===1;
+    trees+=`<g class="tr" data-dec="${dec?1:0}">${dec?`<rect x="-3" y="-40" width="6" height="40" fill="#3a3129"/><circle cy="-62" r="30" class="crown" fill="${cfg.crown}"/>`:`<path d="${spruceD(0,0,100)}" fill="${cfg.tree}"/><path class="tip" d="${tipD(0,0,100)}" fill="#eef2ec"/>`}</g>`}
+  let dashes='';for(let k=0;k<8;k++)dashes+=`<polygon class="ds" fill="#e9e3c8" points="0,0"/>`;
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect width="900" height="360" class="sky" fill="${cfg.skyA}"/>
+    <circle class="sun" r="${cfg.sunR||24}" fill="${cfg.sunC}"/>
+    <g class="hA"><path d="${ridgeD(hA,H)}" fill="${cfg.colA}"/>${cfg.capA?`<path d="${capD(hA,cfg.capA,.55,cfg.seedA)}" fill="#e6ecec"/>`:''}</g>
+    <g class="hB"><path d="${ridgeD(hB,H)}" fill="${cfg.colB}"/>${cfg.capB?`<path d="${capD(hB,cfg.capB,.55,cfg.seedB)}" fill="#e6ecec"/>`:''}</g>
+    <rect class="gnd" y="${HY+2}" width="900" height="${H-HY}" fill="${cfg.gA}"/>
+    <polygon points="444,${HY+2} 456,${HY+2} 800,${H} 100,${H}" fill="#2b302f"/>
+    <polygon points="443,${HY+2} 445,${HY+2} 116,${H} 100,${H}" fill="#cfcfc4" opacity=".7"/><polygon points="455,${HY+2} 457,${HY+2} 800,${H} 784,${H}" fill="#cfcfc4" opacity=".7"/>
+    ${dashes}${trees}
+    <g class="sign"><rect x="-8" y="-10" width="5" height="120" fill="#5a615e"/><rect x="83" y="-10" width="5" height="120" fill="#5a615e"/><rect x="-30" y="-80" width="140" height="78" rx="6" fill="#1f6b43" stroke="#eef2ec" stroke-width="2.5"/>
+      <g transform="translate(-20,-72) scale(1.1)">${cfg.shield}</g><text x="20" y="-55" font-size="15" font-weight="700" fill="#fff">${cfg.signDir}</text><text x="40" y="-22" font-size="22" font-weight="600" fill="#fff" text-anchor="middle">${cfg.signTo}</text></g>
+  </svg>`;
+  return{html,update:(L,el,D)=>{
+    const p=L/D,sp=eio(seg(p,.2,.8));
+    el.q('.sky').setAttribute('fill',mix(cfg.skyA,cfg.skyB,p));
+    const sun=el.q('.sun');sun.setAttribute('cx',r1(lerp(cfg.sun[0],cfg.sun[2],p)));sun.setAttribute('cy',r1(lerp(cfg.sun[1],cfg.sun[3],p)));
+    const hA=el.q('.hA'),hB=el.q('.hB');hA.style.opacity=1-sp;hB.style.opacity=sp;hA.style.transform=`translateX(${r1(-L*5)}px)`;hB.style.transform=`translateX(${r1(-L*5+12)}px)`;
+    el.q('.gnd').setAttribute('fill',mix(cfg.gA,cfg.gB,sp));
+    const hw=y=>6+(y-HY)/(H-HY)*344;
+    el.qa('.ds').forEach((d,k)=>{const z=frac(L*.85+k/8),z2=Math.min(1.05,z+.05),y1=HY+(H-HY)*z*z,y2=HY+(H-HY)*z2*z2,w1=.6+z*7,w2=.6+z2*7;d.setAttribute('points',`${r1(450-w1)},${r1(y1)} ${r1(450+w1)},${r1(y1)} ${r1(450+w2)},${r1(y2)} ${r1(450-w2)},${r1(y2)}`);d.style.opacity=seg(z,0,.15)});
+    const snowU=lerp(cfg.snowA,cfg.snowB,sp);
+    el.qa('.tr').forEach((g,i)=>{const side=i%2?1:-1,z=frac(L*.3+i/18+(side>0?.03:0)),e=Math.pow(z,2.1),y=HY+(H-HY)*e,x=450+side*(hw(y)+18+e*(60+(i%5)*26)),s=.05+e*1.7;
+      g.setAttribute('transform',`translate(${r1(x)},${r1(y)}) scale(${(s).toFixed(3)})`);g.style.opacity=seg(z,0,.1)*(1-seg(z,.93,1));
+      const tip=g.querySelector('.tip');if(tip)tip.style.opacity=snowU;const cr=g.querySelector('.crown');if(cr)cr.setAttribute('fill',mix(cfg.crown,cfg.crownB||cfg.crown,sp))});
+    const z=seg(L,D-3.4,D-.2),e=Math.pow(z,2.1),y=HY+(H-HY)*e*.82,x=450+hw(y)+10+e*120,s=.06+e*1.35,sg=el.q('.sign');
+    sg.setAttribute('transform',`translate(${r1(x)},${r1(y)}) scale(${s.toFixed(3)})`);sg.style.opacity=z>0&&z<.98?1:0;
+  }}
+}
+function textBlock({kicker,h,p,facts,shields,list,sched,addr,note,rightExtra}){
+  return`<div class="txt"><div><div class="kicker" data-in=".35">${kicker}</div><h2 data-in=".5">${h}</h2>${p?`<p class="p" data-in=".7">${p}</p>`:''}${note?`<div class="note" data-in=".9" style="margin-top:16px">${note}</div>`:''}</div>
+  <div>${facts?`<div class="facts">${facts.map((f,i)=>`<div class="fact" data-in="${.9+i*.18}"><b>${f[0]}</b><span>${f[1]}</span></div>`).join('')}</div>`:''}
+  ${shields?`<div class="shields" data-in="1.5">${shields}</div>`:''}
+  ${list?`<ul class="list">${list.map((l,i)=>`<li data-in="${.9+i*.25}">${l}</li>`).join('')}</ul>`:''}
+  ${sched?`<div class="sched">${sched.map((r,i)=>`<div class="tm" data-in="${.9+i*.3}">${r[0]}</div><div class="ac" data-in="${.9+i*.3}">${r[1]}</div>`).join('')}</div>`:''}
+  ${addr?`<div class="addr" data-in="1.6">${addr}</div>`:''}${rightExtra||''}</div></div>`}
+const slate=(n,d,th)=>`<div class="dayslate" data-in="0" data-out="1.8"><span class="n">${n}</span><span class="d">${d}</span><span class="th">${th}</span></div>`;
+const arrow=`<span style="color:var(--faint)">→</span>`;
+
+// Saturday drive
+(function(){const r=roadScene('sat',{seedA:31,seedB:32,ampA:26,ampB:78,sharpB:true,colA:'#6a6849',colB:'#3c5d56',capB:140,skyA:'#9fb9ca',skyB:'#b9ccd8',sunC:'#f4dca6',sun:[170,128,270,72],gA:'#5b5a3f',gB:'#c3cdc7',tree:'#25402f',dec:1,crown:'#8f532f',crownB:'#5e5248',snowA:0,snowB:1,shield:shield(89),signDir:'NORTH',signTo:'Burlington'});
+  add('satdrive',9,14,slate('Day 1','Saturday, November 21','The journey north')+r.html+textBlock({kicker:'6:45 AM · Depart West Hartford',h:'North on I-91 into the Green Mountains',p:'An early start, one optional rest stop, and Burlington by late morning.',facts:[['215–225','miles'],['3:45–4:00','hours'],['1','optional stop']],shields:`${shield('84')} I-84 W ${arrow} ${shield('91')} I-91 N ${arrow} ${shield('89')} I-89 N`}),r.update,C.amber)})();
+
+// Burlington
+(function(){const ad=ridge(21,{y:188,amp:58,sharp:true,step:4}),ad2=ridge(22,{y:204,amp:22,step:6});
+  let ripples='';const rr=rng(9);for(let i=0;i<26;i++)ripples+=`<rect class="rp" data-x="${r1(rr()*900)}" data-s="${r1(4+rr()*10)}" y="${r1(214+rr()*78)}" width="${r1(14+rr()*40)}" height="2" fill="#7ea3bb" opacity=".55"/>`;
+  let bld='';const br=rng(4);const cols=['#8f4532','#7a3a2b','#a2563d','#6c3428','#94503a'];let x=-10;
+  while(x<330){const w=40+br()*46,h=50+br()*90;const c=cols[Math.floor(br()*cols.length)];bld+=`<rect x="${r1(x)}" y="${r1(298-h)}" width="${r1(w)}" height="${r1(h)}" fill="${c}"/>`;
+    for(let wy=298-h+12;wy<288;wy+=16)for(let wx=x+7;wx<x+w-10;wx+=13)bld+=`<rect x="${r1(wx)}" y="${r1(wy)}" width="6" height="8" fill="#2a1d18" opacity=".75"/>`;
+    bld+=`<rect x="${r1(x)}" y="${r1(298-h-3)}" width="${r1(w)}" height="4" fill="#e9eeec"/>`;x+=w+2}
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect width="900" height="360" fill="#a8c6d7"/>
+    <circle cx="730" cy="70" r="26" fill="#f6e3b0"/>
+    <g class="cl"><rect x="80" y="54" width="150" height="16" rx="8" fill="#eef2ec" opacity=".7"/><rect x="520" y="96" width="110" height="12" rx="6" fill="#eef2ec" opacity=".6"/></g>
+    <path d="${ridgeD(ad,360)}" fill="#7d94a7"/><path d="${capD(ad,160,.5,21)}" fill="#e8eef0"/><path d="${ridgeD(ad2,360)}" fill="#6a8598"/>
+    <rect y="210" width="900" height="100" fill="#4f7a96"/>${ripples}
+    <path d="M520,262 H800" stroke="#2c4b5e" stroke-width="4"/><g transform="translate(806,262)"><rect x="-4" y="-22" width="8" height="22" fill="#eef2ec"/><rect x="-5" y="-27" width="10" height="6" fill="#b8333a"/></g>
+    <g class="boat"><path d="M-24,0 H24 L16,8 H-16Z" fill="#eef2ec"/><path d="M0,-2 V-48 L22,-4Z" fill="#eef2ec"/><path d="M-2,-4 V-40 L-20,-4Z" fill="#d9dfdc"/></g>
+    <rect y="298" width="900" height="62" fill="#2b4637"/><rect y="296" width="900" height="5" fill="#dfe6e2"/>
+    <g class="city">${bld}<rect x="226" y="140" width="34" height="158" fill="#7c3a2b"/><rect x="230" y="110" width="26" height="32" fill="#eef2ec"/><path d="M228,112 L243,52 L258,112Z" fill="#eef2ec"/></g>
+  </svg>`;
+  add('burl',14,18.5,html+textBlock({kicker:'10:45 AM · Burlington, Vermont',h:'Seventy-five minutes downtown',p:'A chance to see the city around the university, not only the campus.',list:['Church Street Marketplace','Lake Champlain waterfront','Downtown Burlington','Local shops and cafés']}),(L,el)=>{
+    el.qa('.rp').forEach(r=>r.setAttribute('x',r1(frac((+r.dataset.x+L*+r.dataset.s)/950)*950-40)));
+    el.q('.boat').setAttribute('transform',`translate(${r1(330+L*14)},252)`);
+    el.q('.cl').style.transform=`translateX(${r1(L*6)}px)`;
+    el.q('.city').style.transform=`translateY(${r1((1-eout(seg(L,0,1.2)))*30)}px)`;
+  },C.amber)})();
+
+// Hong's
+(function(){let grain='';const g=rng(77);for(let i=0;i<22;i++){const y=r1(g()*360);grain+=`<path d="M0,${y} Q450,${r1(y+g()*14-7)} 900,${y}" stroke="#46291e" stroke-width="${r1(1+g()*3)}" fill="none"/>`}
+  let slats='';for(let y=60;y<320;y+=20)slats+=`<line x1="300" x2="600" y1="${y}" y2="${y}" stroke="#c49b62" stroke-width="3"/>`;
+  const dump=(x,y,a,i)=>`<g transform="translate(${x},${y}) rotate(${a})"><g data-pop="${.6+i*.22}"><path d="M-34,9 Q-33,-24 0,-27 Q33,-24 34,9 Q0,21 -34,9Z" fill="#f4e8cf" stroke="#d8c39a" stroke-width="2"/><path d="M-22,-16 q6,8 2,20 M-10,-23 q5,10 2,24 M2,-25 q4,10 1,25 M14,-22 q3,9 -1,22 M25,-14 q1,7 -3,16" stroke="#dcc8a2" stroke-width="2.2" fill="none" stroke-linecap="round"/></g></g>`;
+  const pos=[[450,185,0]];for(let i=0;i<6;i++){const a=i*60-90;pos.push([r1(450+Math.cos(a*Math.PI/180)*76),r1(185+Math.sin(a*Math.PI/180)*76),a+90])}
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect width="900" height="360" fill="#3a231a"/>${grain}
+    <rect x="230" y="-10" width="440" height="380" fill="#7c2b23"/><rect x="242" y="-10" width="416" height="380" fill="none" stroke="#9a3f31" stroke-width="2"/>
+    <defs><clipPath id="stmClip"><circle cx="450" cy="185" r="132"/></clipPath></defs>
+    <circle cx="450" cy="185" r="152" fill="#b98a52"/><circle cx="450" cy="185" r="140" fill="#a87a45"/><circle cx="450" cy="185" r="132" fill="#d9b67f"/>
+    <g clip-path="url(#stmClip)">${slats}</g><circle cx="450" cy="185" r="122" fill="#eee1c3"/>
+    ${pos.map((p,i)=>dump(p[0],p[1],p[2],i)).join('')}
+    <g transform="translate(118,268)"><circle r="52" fill="#e8e3d8"/><circle r="40" fill="#3b1d12"/><path d="M-40,0 A40,40 0 0 1 24,-32" stroke="#b4432a" stroke-width="7" fill="none"/></g>
+    <g><rect x="700" y="60" width="9" height="300" rx="4" fill="#c9a273" transform="rotate(28 704 210)"/><rect x="730" y="58" width="9" height="300" rx="4" fill="#b88f60" transform="rotate(24 734 208)"/></g>
+    ${[0,1,2].map(i=>`<path class="steam" d="M${400+i*50},170 q-16,-30 0,-60 q16,-30 0,-60" stroke="#f3eee6" stroke-width="9" fill="none" stroke-linecap="round"/>`).join('')}
+  </svg>`;
+  add('hongs',18.5,22.5,html+textBlock({kicker:'12:00–12:45 PM · Lunch',h:"Hong's Chinese Dumplings",p:'A locally owned Burlington restaurant known for handmade Chinese dumplings. This is the one food stop planned in advance.',facts:[['77 Pearl St','Burlington, VT 05401'],['12–7 PM','listed Saturday hours']]}),(L,el)=>{
+    el.qa('.steam').forEach((s,i)=>{const ph=frac(L*.45+i*.33);s.style.transform=`translateY(${r1(-ph*40)}px)`;s.style.opacity=(Math.sin(ph*Math.PI)*.42*seg(L,1.6,2.4)).toFixed(3)});
+  },C.amber)})();
+
+// line diagram helper
+function lineDiagram(stops,y0,c,t0=1.2,t1=5){
+  const y=y0+56,x0=70,x1=830,n=stops.length,dx=(x1-x0)/(n-1);
+  let s=`<rect x="0" y="${y0}" width="900" height="${360-y0}" fill="#e7ebe2"/><text x="20" y="${y0+20}" font-size="12" font-weight="700" letter-spacing="2" fill="#5c6b63">SELF-GUIDED WALKING ORDER</text>`;
+  s+=`<path d="M${x0},${y}H${x1}" stroke="#c6cdc1" stroke-width="6" stroke-linecap="round"/><path d="M${x0},${y}H${x1}" stroke="${c}" stroke-width="6" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" data-draw="${t0},${t1}"/>`;
+  stops.forEach((st,i)=>{const x=x0+i*dx,up=i%2===1,tin=t0+(i/(n-1))*(t1-t0),anc=i===0?'start':i===n-1?'end':'middle',lx=i===0?x-10:i===n-1?x+10:x;
+    s+=`<g data-pop="${tin}"><circle cx="${x}" cy="${y}" r="11" fill="#e7ebe2" stroke="#1d2b26" stroke-width="3"/><text x="${x}" y="${y+4.5}" text-anchor="middle" class="stn">${i+1}</text></g><text x="${lx}" y="${up?y-21:y+34}" text-anchor="${anc}" class="stl" data-in="${tin}">${st}</text>`});
+  return s}
+
+// UVM
+(function(){const gm=ridge(41,{y:150,amp:30,sharp:true,step:5});
+  const win=(x0,x1,y0,y1,c='#2a2420')=>{let s='';for(let y=y0;y<y1;y+=17)for(let x=x0;x<x1;x+=14)s+=`<rect x="${x}" y="${y}" width="6" height="9" fill="${c}" opacity=".8"/>`;return s};
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect width="900" height="250" fill="#b9cbd6"/><path d="${ridgeD(gm,250)}" fill="#8ba1ae"/><path d="${capD(gm,132,.6,41)}" fill="#e6ecef"/>
+    <g class="campus">
+    <rect x="190" y="160" width="150" height="72" fill="#8e5a3c"/>${win(200,330,172,224)}<rect x="190" y="156" width="150" height="5" fill="#eef2ec"/><path d="M250,160 L265,128 L280,160Z" fill="#7d4c33"/>
+    <rect x="370" y="150" width="96" height="82" fill="#9a4532"/>${win(380,456,162,224)}<rect x="403" y="80" width="32" height="72" fill="#8a3d2c"/><rect x="408" y="58" width="22" height="24" fill="#eef2ec"/><path d="M406,60 Q419,40 432,60Z" fill="#eef2ec"/><rect x="418" y="32" width="2" height="12" fill="#eef2ec"/>
+    <rect x="500" y="140" width="200" height="92" fill="#a24f3a"/>${win(510,690,152,224)}<rect x="500" y="136" width="200" height="5" fill="#eef2ec"/><rect x="590" y="110" width="20" height="28" fill="#eef2ec"/><path d="M588,112 L600,90 L612,112Z" fill="#2a3a33"/>
+    <rect x="725" y="128" width="140" height="104" fill="#8c3f2f"/>${win(735,855,140,224)}<path d="M725,128 L795,94 L865,128Z" fill="#6f3226"/><path d="M727,127 L795,96 L863,127" stroke="#eef2ec" stroke-width="3" fill="none"/>
+    </g>
+    <rect y="230" width="900" height="22" fill="#5d7b4e"/><path d="M0,232 H900" stroke="#e3e9e5" stroke-width="3"/>
+    ${lineDiagram(['University Green','Waterman Building','Old Mill','Bailey/Howe Library','Davis Center','Redstone Campus','Athletic facilities'],252,C.amber)}
+  </svg>`;
+  add('uvm',22.5,28.5,html+textBlock({kicker:'1:00–3:00 PM · Campus visit',h:'University of Vermont',p:'A two-hour self-guided walk around campus architecture, academic buildings, student spaces and the neighborhoods nearby. Outdoors only: no building access or admissions staff is assumed.',facts:[['7','stops'],['2 h','on foot']],addr:'85 South Prospect Street, Burlington'}),(L,el)=>{
+    el.q('.campus').style.transform=`translateY(${r1((1-eout(seg(L,0,1.1)))*24)}px)`},C.amber)})();
+
+// Stowe drive
+(function(){const r=roadScene('stowe',{seedA:51,seedB:52,ampA:60,ampB:96,sharpA:true,sharpB:true,colA:'#3d5a55',colB:'#33504f',capA:145,capB:128,skyA:'#b3c4cd',skyB:'#c6c0b5',sunC:'#f2d39b',sun:[640,96,700,124],gA:'#c8d1cc',gB:'#d6ddd9',tree:'#20392c',snowA:.8,snowB:1,shield:routeSign(100,30,'vt'),signDir:'NORTH',signTo:'Stowe'});
+  add('stowedrive',28.5,31.5,r.html+textBlock({kicker:'3:00 PM · To Stowe',h:'I-89 South, then Route 100 North',p:'Exit 10 toward Waterbury and Stowe, up the valley to the inn.',facts:[['35–40','miles'],['45–55','minutes']],shields:`${shield('89')} I-89 S ${arrow} Exit 10 ${arrow} ${routeSign(100,32,'vt')} VT 100 N`}),r.update,C.amber)})();
+
+// Commodores Inn
+(function(){const mp=mansfieldPts(250,.07);const sp=ridge(61,{y:286,amp:10,step:6});const[sf]=forestD(sp,62,110,16,40,6);
+  let stars='';const sr=rng(5);for(let i=0;i<34;i++)stars+=`<circle class="star" cx="${r1(sr()*900)}" cy="${r1(sr()*140)}" r="${r1(.8+sr()*1.3)}" fill="#eef2ec" data-k="${r1(sr()*6)}"/>`;
+  let wins='';const wr=rng(12);for(let row=0;row<2;row++)for(let i=0;i<12;i++)wins+=`<rect class="iw" x="${300+i*27}" y="${row?266:240}" width="12" height="14" fill="#3a3f44" data-on="${r1(.8+wr()*2.6)}"/>`;
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect class="b0" width="900" height="90"/><rect class="b1" y="90" width="900" height="60"/><rect class="b2" y="150" width="900" height="45"/><rect class="b3" y="195" width="900" height="80"/>
+    ${stars}<circle class="isun" cx="660" r="22" fill="#f0b45c"/>
+    <path d="${ridgeD(mp,360)}" fill="#1c2a33"/><path d="${capD(mp,170,.55,8)}" class="mcap" fill="#c9d4dc"/>
+    <rect y="286" width="900" height="74" fill="#cfd8d6" class="vsnow"/><path d="${sf}" fill="#132019"/>
+    <rect x="286" y="232" width="340" height="62" fill="#e7e2d4"/><path d="M276,234 L456,206 L636,234Z" fill="#2a2e33"/><path d="M280,233 L456,207 L632,233" stroke="#eef2ec" stroke-width="3" fill="none"/>
+    <rect x="530" y="196" width="14" height="24" fill="#5b4b43"/><rect x="286" y="292" width="340" height="3" fill="#8b857a"/>
+    <rect class="dusk" width="900" height="360" fill="#0e1714" opacity="0"/>
+    ${wins}
+    <rect y="318" width="900" height="42" fill="#e6ece9" class="fg"/>
+  </svg>`;
+  add('inn',31.5,36.5,html+textBlock({kicker:'4:00 PM · Night 1',h:'Commodores Inn, Stowe',p:'Indoor lodging and a deliberately quiet evening before the hardest day.',sched:[['4:00–5:00','Check in and settle in'],['5:00–6:30','Stowe Village and dinner'],['6:30–7:30','Prepare hiking gear'],['8:30','Lights out']],addr:'823 South Main Street · 802-253-7131<br>Saturday driving ≈ 250–265 mi · 4.5–5 h'}),(L,el,D)=>{
+    const u=seg(L,0,D-.4);
+    const A=['#5a6a86','#8f8aa0','#d6a07a','#efc184'],B=['#0f1726','#151f33','#1e2a40','#2a3550'];
+    ['.b0','.b1','.b2','.b3'].forEach((s,i)=>el.q(s).setAttribute('fill',mix(A[i],B[i],eio(seg(u,i*.08,.55+i*.1)))));
+    el.q('.isun').setAttribute('cy',r1(lerp(196,300,eio(seg(u,0,.35)))));
+    el.q('.dusk').setAttribute('opacity',(eio(seg(u,.15,.8))*.5).toFixed(3));
+    el.q('.mcap').setAttribute('fill',mix('#e7c9b8','#5b6878',eio(seg(u,.1,.7))));
+    el.q('.fg').setAttribute('fill',mix('#e6ece9','#59645f',eio(seg(u,.15,.8))));
+    el.qa('.star').forEach(s=>s.setAttribute('opacity',(seg(u,.45,.8)*(.55+.45*Math.sin(L*2+ +s.dataset.k))).toFixed(3)));
+    el.qa('.iw').forEach(w=>w.setAttribute('fill',L>+w.dataset.on?'#f2c46b':'#3a3f44'));
+  },C.amber)})();
+
+// Sunday dawn
+(function(){const mp=mansfieldPts(330,.11);const fb=ridge(71,{y:318,amp:10,step:6});const[ff]=forestD(fb,72,140,18,44,6);
+  const lab=(x,e,t)=>{const y=330-(e-2000)*.11;return`<g data-in="2.4"><path d="M${x},${r1(y-8)} V${r1(y-30)}" stroke="#eef2ec" stroke-width="1" opacity=".6"/><text x="${x}" y="${r1(y-36)}" text-anchor="middle" font-family="Newsreader,serif" font-style="italic" font-size="15" fill="#eef2ec">${t}</text></g>`};
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect class="d0" width="900" height="70"/><rect class="d1" y="70" width="900" height="50"/><rect class="d2" y="120" width="900" height="45"/><rect class="d3" y="165" width="900" height="195"/>
+    <path d="${ridgeD(mp,360)}" fill="#1e2c3a"/><path d="${capD(mp,215,.62,9)}" class="mcap"/>
+    ${lab(235,3940,'Forehead')}${lab(335,4062,'Nose')}${lab(565,4393,'The Chin')}
+    <path d="${ridgeD(fb,360)}" fill="#111c18"/><path d="${ff}" fill="#111c18"/>
+  </svg>`;
+  add('dawn',36.5,40.5,slate('Day 2','Sunday, November 22','The biggest adventure')+html+textBlock({kicker:'5:30 wake · 6:15 depart · 6:35 at the mountain',h:'Conditions first, then the trail',p:"Stowe Mountain Resort is targeting a November 21 opening. Its 2026–27 uphill routes get confirmed before we set out (802-253-3690). No closed ski trails, and no assumption that Route 108 through Smugglers' Notch is open.",list:['Uphill hiking permissions','Trail and parking restrictions','Wind and temperature','Visibility','Snow and ice']}),(L,el,D)=>{
+    const u=seg(L,0,D);const A=['#141d33','#223154','#4b5a80','#8c90a8'],B=['#2c3e63','#5a6f96','#a3a9bf','#e2b48c'];
+    ['.d0','.d1','.d2','.d3'].forEach((s,i)=>el.q(s).setAttribute('fill',mix(A[i],B[i],eio(u))));
+    el.q('.mcap').setAttribute('fill',mix('#9eabc0','#f2d8c6',eio(seg(u,.2,1))));
+  },C.ice)})();
+
+// profile chart helper (shared scale so the two mountains compare honestly)
+const PX=d=>70+d/4.2*770, PY=e=>330-(e-1000)/3600*290;
+function profilePts(key){const h=HIKE[key],pts=[];for(let i=0;i<=120;i++){const u=i/120;pts.push([PX(u*h.dist),PY(h.base+h.gain*h.f(u))])}return pts}
+function chartFrame(){let s='';[2000,3000,4000].forEach(e=>{s+=`<path d="M70,${r1(PY(e))}H860" stroke="#22362e" stroke-width="1"/><text class="ax" x="62" y="${r1(PY(e)+4)}" text-anchor="end">${fmtN(e)} ft</text>`});
+  [0,1,2,3,4].forEach(d=>s+=`<text class="ax" x="${r1(PX(d))}" y="350" text-anchor="middle">${d} mi</text>`);return s}
+function daylightBar(key,y,c,sun,turn,turnLabel){const X=m=>70+(m-360)/720*770;const h=HIKE[key];
+  return`<g data-in="1"><rect x="70" y="${y}" width="770" height="16" fill="#0a110f"/><rect x="${r1(X(sun[0]))}" y="${y}" width="${r1(X(sun[1])-X(sun[0]))}" height="16" fill="#2c4757"/>
+  <rect x="${r1(X(h.s))}" y="${y+4}" width="${r1(X(h.end)-X(h.s))}" height="8" fill="${c}"/>
+  <path d="M${r1(X(turn))},${y-6}V${y+22}" stroke="#e2a23b" stroke-width="2"/><text x="${r1(X(turn))}" y="${y-10}" text-anchor="middle" font-size="12" font-weight="600" fill="#e2a23b" letter-spacing="1">${turnLabel}</text>
+  <text class="ax" x="${r1(X(sun[0]))}" y="${y+34}" text-anchor="middle">Sunrise ${fmtClock(sun[0]).replace(' AM','')}</text><text class="ax" x="${r1(X(sun[1]))}" y="${y+34}" text-anchor="middle">Sunset ${fmtClock(sun[1]).replace(' PM','')}</text>
+  <text class="chartlbl" x="70" y="${y-10}">Daylight</text>
+  <text class="ax" x="840" y="${y+34}" text-anchor="end" style="fill:#cad6cf">${(()=>{const m=sun[1]-h.end;return`${Math.floor(m/60)} h ${m%60} min of daylight after finishing`})()}</text>
+  <rect class="nowc" x="0" y="${y-3}" width="2" height="22" fill="#eef2ec"/></g>`}
+function chartUpdate(key,el,t,clipId){const hs=hikeState(key,t),h=HIKE[key];const pts=el._pts||(el._pts=profilePts(key));
+  const idx=Math.round(hs.u*120),p=pts[idx];el.q('.hiker').setAttribute('transform',`translate(${r1(p[0])},${r1(p[1])})`);
+  el.q('#'+clipId+' rect').setAttribute('width',r1(PX(hs.max*h.dist)-60));
+  const ck=clockAt(t);el.q('.htime').textContent=ck?fmtClock(ck.m):'';
+  if(ck){const X=m=>70+(m-360)/720*770;el.q('.nowc').setAttribute('x',r1(X(clamp(ck.m,360,1080))-1))}
+  return hs}
+
+// Mansfield
+(function(){const pts=profilePts('m'),top=pts[pts.length-1];const gp=profilePts('g');
+  const area=`M70,330 L${pts.map(p=>r1(p[0])+','+r1(p[1])).join('L')} L${r1(top[0])},330Z`;
+  let tr='';const rr=rng(3);for(let i=0;i<70;i++){const k=Math.floor(rr()*100);const p=pts[k];if(p[1]<PY(3750))continue;tr+=spruceD(p[0],p[1]+3,8+rr()*10)}
+  const bands=[[0,1.06,'1 · Forest ascent'],[1.06,2.0,'2 · Upper mountain'],[2.0,2.35,'3 · The Chin']];
+  const html=`<svg class="ill" viewBox="0 0 900 470" width="900" height="470">
+    <rect width="900" height="470" fill="#13211d"/>
+    <text class="chartlbl" x="70" y="22">Reference profile · Long Trail South · one way (schematic)</text>
+    ${chartFrame()}
+    <path d="${lineD(gp)}" fill="none" stroke="#5d6f66" stroke-width="1.5" stroke-dasharray="4 4" data-in="1.4"/><text class="ax" x="${r1(gp[120][0])}" y="${r1(gp[120][1]-10)}" text-anchor="end" data-in="1.4">Greylock, for scale</text>
+    <g data-in=".2"><path d="${area}" fill="#2e5141"/><path d="${tr}" fill="#2e5141"/>
+    <defs><clipPath id="mCap"><rect x="0" y="0" width="900" height="${r1(PY(3750))}"/></clipPath><clipPath id="mClip"><rect x="60" y="0" width="0" height="470"/></clipPath></defs>
+    <path d="${area}" fill="#e6ecea" clip-path="url(#mCap)"/></g>
+    <path d="${lineD(pts)}" fill="none" stroke="#e6ecea" stroke-width="2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" data-draw=".2,1.4"/>
+    <path d="${lineD(pts)}" fill="none" stroke="#a9cbe0" stroke-width="4.5" stroke-linecap="round" clip-path="url(#mClip)"/>
+    ${bands.map((b,i)=>`<g data-in="${1+i*.3}"><path d="M${r1(PX(b[1]))},${r1(PY(4500))}V330" stroke="#3e584c" stroke-dasharray="3 4" ${i===2?'opacity="0"':''}/><text class="chartlbl" x="${r1(PX(b[0])+8)}" y="${r1(PY(4560))}" style="fill:${i===2?'#eef2ec':'#9fb0a7'}">${b[2]}</text></g>`).join('')}
+    <g data-pop="5.5" transform="translate(0,0)"><g transform="translate(${r1(top[0])},${r1(top[1])})"><path d="M0,0V-26" stroke="#eef2ec" stroke-width="2"/><path d="M0,-26 L16,-21 L0,-16Z" fill="#a9cbe0"/></g></g>
+    <g data-in="1.8"><text x="560" y="150" font-size="72" font-weight="500" fill="#eef2ec">4,393 ft</text><text x="563" y="176" font-size="15" font-weight="600" letter-spacing="2.2" fill="#a9cbe0">VERMONT'S HIGHEST POINT</text>
+      <text x="563" y="210" font-family="Newsreader,serif" font-size="17" fill="#9fb0a7">Reference route: 4.7 mi round trip,</text><text x="563" y="232" font-family="Newsreader,serif" font-size="17" fill="#9fb0a7">2,790 ft of gain, ~5 h in normal</text><text x="563" y="254" font-family="Newsreader,serif" font-size="17" fill="#9fb0a7">conditions. Winter adds time.</text></g>
+    <g class="hiker"><circle r="8" fill="#eef2ec" stroke="#0e1714" stroke-width="3"/><text class="htime" y="-16" text-anchor="middle" font-size="15" font-weight="600" fill="#eef2ec" style="paint-order:stroke;stroke:#13211d;stroke-width:4px"></text></g>
+    ${daylightBar('m',408,C.ice,SUN[2],660,'Turnaround 11:00')}
+  </svg>`;
+  add('mans',40.5,52.5,html+`<div class="txt" style="top:490px"><div><div class="kicker" data-in=".3">7:00 AM · Summit attempt</div><h2 data-in=".45" style="font-size:50px;margin:10px 0 12px">Mount Mansfield</h2>
+    <div class="note" data-in="2.2">The summit is conditional. Closed access, poor visibility, high wind, or ice beyond our skills and gear means we turn back and switch to a lower-risk Stowe-area hike. The rest of the trip goes ahead either way.</div></div>
+    <div class="sched">${[['7:00 AM','Begin ascent'],['10:30 AM','Target summit, firm reassessment'],['11:00 AM','Turnaround deadline'],['12:30–1:30','Back at the trailhead']].map((r,i)=>`<div class="tm" data-in="${.8+i*.3}">${r[0]}</div><div class="ac" data-in="${.8+i*.3}">${r[1]}</div>`).join('')}</div></div>`,
+  (L,el,D,t)=>chartUpdate('m',el,t,'mClip'),C.ice)})();
+
+// Williamstown drive
+(function(){const r=roadScene('wt',{seedA:81,seedB:82,ampA:84,ampB:34,sharpA:true,colA:'#37534f',colB:'#2c3c3c',capA:136,skyA:'#c1c8c5',skyB:'#3a4865',sunC:'#f0b45c',sunR:26,sun:[600,118,690,230],gA:'#c9d2cd',gB:'#59625f',tree:'#1d3328',snowA:1,snowB:.25,shield:routeSign(7),signDir:'SOUTH',signTo:'Williamstown'});
+  add('wtdrive',52.5,57.5,r.html+textBlock({kicker:'2:00 PM · South to the Berkshires',h:'Stowe to Williamstown',p:"A winter-maintained route picked by live navigation, avoiding Smugglers' Notch if Route 108 is closed for the season. The line on the map shows one likely option.",facts:[['120–140','miles'],['2:30–3:15','hours']]}),r.update,C.ice)})();
+
+// Williamstown Motel
+(function(){const hills=ridge(91,{y:220,amp:36,step:6}),grey=crSample([[-30,250],[420,232],[600,170],[680,150],[760,168],[930,236]],8);
+  let doors='';const dc=['#2f7f7a','#b8553a','#e2a23b','#3d6a96'];for(let i=0;i<11;i++)doors+=`<rect x="${404+i*36}" y="262" width="14" height="30" fill="${dc[i%4]}"/><rect class="mw" x="${422+i*36}" y="266" width="10" height="10" fill="#3a3f44" data-on="${r1(.6+i*.18)}"/>`;
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect class="b0" width="900" height="80"/><rect class="b1" y="80" width="900" height="60"/><rect class="b2" y="140" width="900" height="50"/><rect class="b3" y="190" width="900" height="80"/>
+    <path d="${ridgeD(grey,360)}" fill="#25343a"/><path d="${capD(grey,190,.5,2)}" class="gcap" fill="#c9d4dc"/><path d="${ridgeD(hills,360)}" fill="#2b3a3d"/>
+    <rect y="292" width="900" height="68" fill="#cfd8d6" class="vsnow"/>
+    <g><rect x="150" y="190" width="70" height="102" fill="#e9e6de"/><path d="M144,192 L185,160 L226,192Z" fill="#d7d3c9"/><rect x="172" y="120" width="26" height="42" fill="#e9e6de"/><path d="M170,122 L185,58 L200,122Z" fill="#e9e6de"/><rect x="179" y="210" width="12" height="34" fill="#5f6a70"/></g>
+    <rect x="390" y="248" width="410" height="44" fill="#e2dccd"/><rect x="384" y="240" width="422" height="10" fill="#33373a"/><path d="M386,240 H804" stroke="#eef2ec" stroke-width="3"/>${doors}
+    <g transform="translate(330,190)"><rect x="-3" y="10" width="6" height="92" fill="#4a4f52"/><rect x="-44" y="-16" width="88" height="30" fill="#b8553a"/><text x="0" y="6" text-anchor="middle" font-size="19" font-weight="700" letter-spacing="3" fill="#fff6e6">MOTEL</text></g>
+    <rect class="dusk" width="900" height="360" fill="#0e1714" opacity="0"/>
+  </svg>`;
+  add('motel',57.5,62,html+textBlock({kicker:'4:30–5:15 PM · Night 2',h:'Williamstown Motel',p:'A practical base a short walk from Williams College and a short drive from Mount Greylock.',sched:[['5:00','Check in'],['5:30–6:30','Dinner in Williamstown'],['6:30–7:30','Prepare for Greylock'],['8:30','Lights out']],addr:'295 Main Street · 413-458-5202<br>Sunday driving ≈ 140–160 mi · 3–3.5 h'}),(L,el,D)=>{
+    const u=seg(L,0,D-.3),A=['#3a4767','#5c6587','#a7807a','#dba56f'],B=['#0f1726','#151f33','#1e2a40','#28344e'];
+    ['.b0','.b1','.b2','.b3'].forEach((s,i)=>el.q(s).setAttribute('fill',mix(A[i],B[i],eio(seg(u,i*.06,.6+i*.1)))));
+    el.q('.dusk').setAttribute('opacity',(eio(seg(u,.1,.8))*.45).toFixed(3));
+    el.qa('.mw').forEach(w=>w.setAttribute('fill',L>+w.dataset.on?'#f2c46b':'#3a3f44'));
+  },C.ice)})();
+
+// Williams
+(function(){const gr=crSample([[-30,180],[300,170],[520,120],[600,104],[700,118],[930,170]],8),hl=ridge(101,{y:190,amp:16,step:6});
+  const html=`<svg class="ill" viewBox="0 0 900 360" width="900" height="360">
+    <rect width="900" height="252" fill="#c3ccd2"/><circle cx="150" cy="128" r="24" fill="#f2cf95"/>
+    <path d="${ridgeD(gr,252)}" fill="#6f8592"/><path d="${capD(gr,150,.55,5)}" fill="#e8edf0"/><path d="${ridgeD(hl,252)}" fill="#59707a"/>
+    <g class="campus">
+    <rect x="90" y="170" width="170" height="62" fill="#8d4a36"/>${(()=>{let s='';for(let x=100;x<250;x+=16)s+=`<rect x="${x}" y="184" width="7" height="12" fill="#2a2420" opacity=".8"/><rect x="${x}" y="208" width="7" height="12" fill="#2a2420" opacity=".8"/>`;return s})()}<path d="M86,170 L175,140 L264,170Z" fill="#5d3326"/>
+    <rect x="320" y="150" width="190" height="82" fill="#a99d8a"/><path d="M316,152 L415,118 L514,152Z" fill="#7e7466"/>${[0,1,2,3,4].map(i=>`<path d="M${342+i*34},226 V182 Q${349+i*34},168 ${356+i*34},182 V226Z" fill="#3e4a52"/>`).join('')}
+    <rect x="510" y="72" width="62" height="160" fill="#b2a692"/>${[0,1,2,3].map(i=>`<rect x="${506+i*20}" y="52" width="10" height="24" fill="#b2a692"/><path d="M${506+i*20},52 L${511+i*20},40 L${516+i*20},52Z" fill="#b2a692"/>`).join('')}<path d="M532,150 V110 Q541,94 550,110 V150Z" fill="#3e4a52"/>
+    <rect x="640" y="182" width="220" height="50" fill="#cbc6bb"/><rect x="640" y="196" width="220" height="14" fill="#5b6f7a"/>
+    </g>
+    <rect y="230" width="900" height="22" fill="#e3e9e6"/>
+    ${lineDiagram(['Weston Hall (Admission)','Main Quad','Thompson Chapel','Sawyer Library','Paresky Center','Spring Street','Athletic facilities'],252,C.rust)}
+  </svg>`;
+  add('williams',62,67.5,slate('Day 3','Monday, November 23','Two final destinations and the drive home')+html+textBlock({kicker:'7:15–8:30 AM · Campus visit',h:'Williams College',p:'Start at Weston Hall, where the college recommends beginning a self-guided visit. Campus map downloaded ahead of time; buildings and admissions may not be open yet.',facts:[['7','stops'],['75 min','on foot']],addr:'880 Main Street, Williamstown'}),(L,el)=>{
+    el.q('.campus').style.transform=`translateY(${r1((1-eout(seg(L,1.6,2.8)))*24)}px)`},C.rust)})();
+
+// Greylock
+(function(){const pts=profilePts('g'),top=pts[pts.length-1],mp=profilePts('m');
+  const area=`M70,330 L${pts.map(p=>r1(p[0])+','+r1(p[1])).join('L')} L${r1(top[0])},330Z`;
+  let tr='';const rr=rng(8);for(let i=0;i<110;i++){const p=pts[Math.floor(rr()*120)];tr+=spruceD(p[0],p[1]+3,8+rr()*10)}
+  const html=`<svg class="ill" viewBox="0 0 900 470" width="900" height="470">
+    <rect width="900" height="470" fill="#13211d"/>
+    <text class="chartlbl" x="70" y="22">Hopper Trail from Hopper Road · one way (schematic, same scale as Mansfield)</text>
+    ${chartFrame()}
+    <path d="${lineD(mp)}" fill="none" stroke="#5d6f66" stroke-width="1.5" stroke-dasharray="4 4" data-in="1.4"/><text class="ax" x="${r1(mp[120][0]+8)}" y="${r1(mp[120][1]+4)}" data-in="1.4">Mansfield, for scale</text>
+    <g data-in=".2"><path d="${area}" fill="#3b4a3a"/><path d="${tr}" fill="#3b4a3a"/>
+    <defs><clipPath id="gCap"><rect x="0" y="0" width="900" height="${r1(PY(3250))}"/></clipPath><clipPath id="gClip"><rect x="60" y="0" width="0" height="470"/></clipPath></defs>
+    <path d="${area}" fill="#e6ecea" clip-path="url(#gCap)"/></g>
+    <path d="${lineD(pts)}" fill="none" stroke="#e6ecea" stroke-width="2" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" data-draw=".2,1.4"/>
+    <path d="${lineD(pts)}" fill="none" stroke="#d46e48" stroke-width="4.5" stroke-linecap="round" clip-path="url(#gClip)"/>
+    ${[[0,2.4,'1 · Hopper Trail, steep lower section'],[2.4,4.1,'2 · Upper trail to the summit']].map((b,i)=>`<g data-in="${1+i*.3}"><path d="M${r1(PX(b[1]))},${r1(PY(4500))}V330" stroke="#3e584c" stroke-dasharray="3 4" ${i===1?'opacity="0"':''}/><text class="chartlbl" x="${r1(PX(b[0])+8)}" y="${r1(PY(4560))}">${b[2]}</text></g>`).join('')}
+    <g data-pop="5"><g transform="translate(${r1(top[0])},${r1(top[1])})"><path d="M-7,0 L-5,-40 L5,-40 L7,0Z" fill="#c9c3b5"/><rect x="-7" y="-44" width="14" height="5" fill="#a39d90"/><circle cy="-50" r="7" fill="#d9e6ea" stroke="#a39d90" stroke-width="1.5"/></g>
+      <text x="${r1(top[0]-16)}" y="${r1(top[1]-36)}" text-anchor="end" font-size="15" font-weight="600" fill="#eef2ec">Veterans War Memorial</text></g>
+    <g data-in="1.8"><text x="560" y="250" font-size="64" font-weight="500" fill="#eef2ec" text-anchor="start">3,491 ft</text><text x="563" y="276" font-size="15" font-weight="600" letter-spacing="2.2" fill="#d46e48">MASSACHUSETTS' HIGHEST POINT</text></g>
+    <g class="hiker"><circle r="8" fill="#eef2ec" stroke="#0e1714" stroke-width="3"/><text class="htime" y="-16" text-anchor="middle" font-size="15" font-weight="600" fill="#eef2ec" style="paint-order:stroke;stroke:#13211d;stroke-width:4px"></text></g>
+    ${daylightBar('g',408,C.rust,SUN[3],690,'Turnaround 11:30')}
+  </svg>`;
+  add('grey',67.5,76.5,html+`<div class="txt" style="top:490px"><div><div class="kicker" data-in=".3">8:45 AM · Hopper Trail</div><h2 data-in=".45" style="font-size:50px;margin:10px 0 10px">Mount Greylock</h2>
+    <p class="p" data-in=".7" style="font-size:18px">Hopper Road trailhead, open year-round. About 8.2 mi round trip and 2,400 ft of gain. The auto road closes after October 30, so the summit is on foot, and the memorial tower is closed for the season. Blaze orange on: it's hunting season.</p></div>
+    <div class="sched">${[['8:45 AM','Begin ascent'],['11:15 AM','Target summit, photos at the memorial'],['11:30 AM','Turnaround deadline'],['~2:00 PM','Back at the trailhead']].map((r,i)=>`<div class="tm" data-in="${.8+i*.3}">${r[0]}</div><div class="ac" data-in="${.8+i*.3}">${r[1]}</div>`).join('')}</div></div>`,
+  (L,el,D,t)=>chartUpdate('g',el,t,'gClip'),C.rust)})();
+
+// Home drive
+(function(){const r=roadScene('home',{seedA:111,seedB:112,ampA:38,ampB:20,colA:'#3a4a45',colB:'#26312f',skyA:'#b2bab8',skyB:'#2e3858',sunC:'#eaa255',sunR:26,sun:[480,140,560,226],gA:'#848677',gB:'#3a403c',tree:'#1f3328',dec:1,crown:'#6b5c50',crownB:'#3f3a36',snowA:.3,snowB:0,shield:shield(91),signDir:'SOUTH',signTo:'Hartford'});
+  add('homedrive',76.5,82,r.html+textBlock({kicker:'2:15 PM · Home',h:'Williamstown to West Hartford',p:'Route 2 east and I-91 south, or the best current route through western Massachusetts.',facts:[['110–125','miles'],['2:15–2:45','hours'],['4:30–5:00','home']]}),r.update,C.rust)})();
+
+// Safety
+(function(){const ic={
+  home:'<path d="M4 15 16 5l12 10v13H4z"/><path d="M13 28v-8h6v8"/>',
+  car:'<circle cx="16" cy="16" r="11"/><circle cx="16" cy="16" r="3"/><path d="M5 16h8M19 16h8M16 19v8"/>',
+  gear:'<path d="M9 28 22 5"/><path d="M17 8c3-3 8-3 10 0"/><path d="M14 13l4 2"/>',
+  wx:'<path d="M3 27 12 13l5 7 4-5 8 12z"/><path d="M19 9a4 4 0 0 1 7.5 1.5H28a2.5 2.5 0 0 1 0 5h-6"/>',
+  phone:'<rect x="10" y="4" width="12" height="24" rx="2"/><path d="M14 24h4"/><path d="M25 9a6 6 0 0 1 0 8M28 6a10 10 0 0 1 0 14"/>',
+  aid:'<circle cx="16" cy="16" r="12"/><path d="M16 10v12M10 16h12"/>'};
+  const icon=k=>`<svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="#e2a23b" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${ic[k]}</svg>`;
+  const cards=[['home','Planned lodging',['Two pre-chosen stays, indoors both nights','No improvised sleeping locations','Parents get both addresses and phone numbers']],
+    ['car','Driving',['Vehicle checked, winter-ready tires','Full tank before mountain roads; offline navigation','No driving after 11 PM','The passenger navigates; the driver never uses a phone']],
+    ['gear','Winter equipment',['Boots, insulated layers, waterproof shell, spare gloves','Traction matched to conditions; crampons and ice axe only with training','Headlamps, map, compass, first aid, food and water reserves']],
+    ['wx','Mountain decisions',['Forecast checked before both hikes','Stowe uphill access confirmed first','Fixed turnaround times; we never separate','Off both mountains well before sunset']],
+    ['phone','Parent communication',['Ten planned check-ins (below)','Live location shared the whole trip','Backup plan if there is no cell signal']],
+    ['aid','Emergencies',['911; charged phones and power banks','First-aid kit and roadside assistance info','Parent contacts on both phones','Both of us know the plan and the alternatives']]];
+  const stops=['Leave home','Burlington','UVM done','Inn check-in','Start Mansfield','Off Mansfield','Motel check-in','Williams done','Off Greylock','Home'];
+  let tl=`<svg width="900" height="120" viewBox="0 0 900 120" style="position:absolute;left:0;top:548px"><text class="chartlbl" x="0" y="12">Planned check-ins with parents</text>
+    <path d="M30,62H870" stroke="#22362e" stroke-width="4"/><path d="M30,62H870" stroke="#e2a23b" stroke-width="4" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" data-draw="6.2,11.5"/>`;
+  stops.forEach((s,i)=>{const x=30+i*(840/9),ti=6.2+i*(5.3/9),d=i<4?C.amber:i<7?C.ice:C.rust;tl+=`<g data-pop="${ti}"><circle cx="${r1(x)}" cy="62" r="9" fill="${d}" stroke="#0e1714" stroke-width="3"/></g><text x="${r1(i===0?x-8:i===9?x+8:x)}" y="${i%2?96:40}" text-anchor="${i===0?'start':i===9?'end':'middle'}" font-size="14" font-weight="600" fill="#cad6cf" data-in="${ti}">${s}</text>`});
+  tl+=`</svg>`;
+  const html=`<div><div class="kicker" data-in=".2">Safety and logistics</div><h2 data-in=".35" style="font-size:46px;margin-top:10px">How the risks are handled</h2></div>
+    <div class="grid6">${cards.map((c,i)=>`<div class="card" data-in="${.8+i*.35}"><h3>${icon(c[0])}${c[1]}</h3><ul>${c[2].map(b=>`<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>
+    ${tl}<div class="disclaimer" data-in="11">Winter summits depend on access, weather and demonstrated technical ability. A safe alternative is always better than forcing a summit.</div>`;
+  add('safety',82,97,html,null,C.amber)})();
+
+// Budget
+(function(){const rows=[['Gas (500–550 mi)',75,110,C.amber],['Commodores Inn',150,300,C.amber],['Williamstown Motel',90,160,C.ice],['Food and meals',100,140,C.rust],['Parking and misc.',15,35,C.rust]];
+  const W=480,X=v=>v/300*W;
+  const html=`<div><div class="kicker" data-in=".2">Estimated budget · two people</div><h2 data-in=".35" style="margin-bottom:26px">What it costs</h2></div>
+    <div style="border-top:1px solid var(--line)">${rows.map((r,i)=>`<div class="brow" data-in="${.7+i*.25}"><div class="bl">${r[0]}</div><div class="btrack"><div class="bbar" data-grow="${.9+i*.25}" style="left:${r1(X(r[1]))}px;width:${r1(X(r[2]-r[1]))}px;background:${r[3]}"></div></div><div class="bv">$${r[1]}–${r[2]}</div></div>`).join('')}
+    <div style="display:grid;grid-template-columns:210px 480px 1fr;gap:18px;margin-top:6px"><div></div><div style="display:flex;justify-content:space-between" class="ax"><span style="font:500 12px var(--display);color:var(--faint)">$0</span><span style="font:500 12px var(--display);color:var(--faint)">$150</span><span style="font:500 12px var(--display);color:var(--faint)">$300</span></div></div></div>
+    <div class="btot"><div class="fact" data-in="2.4"><b data-count="2.4,3.6,0,430">$0</b><span>low estimate</span></div><div class="fact" data-in="2.6"><b data-count="2.6,3.8,0,745">$0</b><span>high estimate</span></div><div class="fact" data-in="2.9"><b>$215–373</b><span>per person</span></div></div>
+    <p class="p" data-in="3.2" style="margin-top:24px;font-size:18px">Ranges, not quotes: lodging, taxes, fuel and food will vary. Still to confirm before booking: the check-in age policy at both properties, November rates, and Stowe's uphill access for November 22.</p>`;
+  add('budget',97,103,html,null,C.amber)})();
+
+// Why
+(function(){const cols=[['College exploration',C.amber,['See UVM and Williams in person','Compare a large university with a small liberal arts college','Explore Burlington and Williamstown']],
+  ['Outdoor challenge',C.ice,["Attempt Vermont's highest mountain","Summit Massachusetts' highest mountain",'Build winter hiking experience and independence']],
+  ['Responsible independence',C.rust,['A defined driving schedule and return time','Two planned stays and a shared budget','Weather and safety contingencies','Regular check-ins with parents']]];
+  const html=`<div><div class="kicker" data-in=".2">Why this trip</div><h2 data-in=".35">Three reasons to say yes</h2></div>
+  <div class="why">${cols.map((c,i)=>`<div data-in="${.8+i*.4}" style="--dc:${c[1]}"><h3>${c[0]}</h3><ul>${c[2].map(b=>`<li>${b}</li>`).join('')}</ul></div>`).join('')}</div>`;
+  add('why',103,108.5,html,null,C.amber)})();
+
+// Final
+add('final',108.5,DUR+1,`<div class="big"><div data-in=".3">Three days.</div><div data-in=".9">Two colleges.</div><div data-in="1.5">Two summits.</div></div>
+  <div class="meta"><div class="kicker" data-in="2.3">November 21–23, 2026</div><div class="route" data-in="2.6">West Hartford → Burlington → Stowe → Williamstown → Mount Greylock → West Hartford</div><div class="tag" data-in="3.1">A planned weekend of exploration, independence and adventure.</div></div>`,null,C.amber);
+
+// mount scenes
+const scenesBox=$('#scenes');
+SCN.forEach(s=>{const el=document.createElement('div');el.className='scene';el.id='sc-'+s.id;el.style.setProperty('--dc',s.dc);el.innerHTML=s.html;scenesBox.appendChild(el);
+  el.q=sel=>el.querySelector(sel);el.qa=sel=>el.querySelectorAll(sel);s.el=el;
+  s.ins=[...el.querySelectorAll('[data-in]')].map(e=>({e,a:+e.dataset.in,o:e.dataset.out!=null?+e.dataset.out:null}));
+  s.draws=[...el.querySelectorAll('[data-draw]')].map(e=>{const[a,b]=e.dataset.draw.split(',').map(Number);return{e,a,b}});
+  s.pops=[...el.querySelectorAll('[data-pop]')].map(e=>{e.style.transformBox='fill-box';e.style.transformOrigin='center';return{e,a:+e.dataset.pop}});
+  s.grows=[...el.querySelectorAll('[data-grow]')].map(e=>({e,a:+e.dataset.grow}));
+  s.counts=[...el.querySelectorAll('[data-count]')].map(e=>{const[a,b,f,to]=e.dataset.count.split(',').map(Number);return{e,a,b,f,to}});
+});
+
+// bottom timeline
+const TLS=[[9,14,'Depart',1],[14,88,'Burlington',1],[18.5,150,"Hong's",1],[22.5,204,'UVM',1],[31.3,266,'Stowe',1],[40.5,338,'Mansfield',2],[52.6,440,'Drive south',2],[57.2,540,'Williamstown',2],[62,632,'Williams',3],[68,712,'Greylock',3],[76.6,800,'Drive home',3],[81.3,880,'Home',3]];
+(function(){let s='';[['SAT',0],['SUN',300],['MON',600]].forEach(([d,x],i)=>{s+=`<text x="${x}" y="11" font-size="11" font-weight="700" letter-spacing="2" fill="${DAYC[i+1]}">${d}</text><path d="M${x+(i?4:0)},30H${x+296}" stroke="#22362e" stroke-width="3"/><path class="tlf" data-d="${i+1}" d="M${x+(i?4:0)},30H${x+296}" stroke="${DAYC[i+1]}" stroke-width="3" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1"/>`});
+  TLS.forEach(([t,x,l,d],i)=>s+=`<circle class="tlc" cx="${x}" cy="30" r="5" fill="#0e1714" stroke="${DAYC[d]}" stroke-width="2"/><text x="${x}" y="52" font-size="12" font-weight="600" fill="#7f9388" text-anchor="${i===0?'start':i===TLS.length-1?'end':'middle'}" letter-spacing=".5">${l}</text>`);
+  $('#tl').innerHTML=s})();
+const tlFills=[...document.querySelectorAll('.tlf')],tlCs=[...document.querySelectorAll('.tlc')];
+const tlX=TLS.map(a=>[a[0],a[1]]);
+
+// ---------- effects ----------
+const snow=$('#snow'),sctx=snow.getContext('2d');const FL=[];(()=>{const r=rng(99);for(let i=0;i<170;i++)FL.push({x:620+r()*980,y:r()*900,s:18+r()*34,r:.8+r()*1.9,ph:r()*6.28,a:.35+r()*.5})})();
+const SNOWK=[[36.3,0],[37,.45],[40.5,.55],[52.3,.55],[53.5,.12],[57.3,.12],[58,.25],[62,.25],[63,.12],[76.3,.12],[77,0]];
+(function(){const c=document.createElement('canvas');c.width=c.height=160;const x=c.getContext('2d'),d=x.createImageData(160,160),r=rng(5);for(let i=0;i<d.data.length;i+=4){const v=Math.floor(r()*255);d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}x.putImageData(d,0,0);$('#grain').style.backgroundImage=`url(${c.toDataURL()})`})();
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- render ----------
+const el={cMi:$('#cMi'),cDr:$('#cDr'),cEl:$('#cEl'),hDay:$('#hDay'),hTheme:$('#hTheme'),clock:$('#clock'),hudClock:$('#hudClock'),sunDot:$('#sunDot'),sunR:$('#sunR'),sunS:$('#sunS'),scaleBar:$('#scaleBar'),scaleTxt:$('#scaleTxt')};
+const THEMES={1:['Day 1 · Saturday, November 21','The journey north'],2:['Day 2 · Sunday, November 22','The biggest adventure'],3:['Day 3 · Monday, November 23','Two final destinations and the drive home']};
+let lastDay=null;
+function render(t){
+  // camera
+  const[clon,clat,z]=camAt(t),cp=P([clon,clat]),vw=620/z,vh=900/z;
+  map.setAttribute('viewBox',`${r1(cp[0]-vw/2)} ${r1(cp[1]-vh/2)} ${r1(vw)} ${r1(vh)}`);
+  const inv=(1/z).toFixed(4);
+  mapSL.forEach(o=>o.g.setAttribute('transform',`translate(${r1(o.x)},${r1(o.y)}) scale(${inv})${o.r?` rotate(${o.r})`:''}`));
+  // legs + car
+  const fin=seg(t,109,114.2),fe=eio(fin);
+  let carPt=P(WH),carA=-90,lastIdx=-1;
+  LEGS.forEach((l,i)=>{const f=eio(seg(t,l.t[0],l.t[1]));legEls[i].style.strokeDashoffset=(1-f).toFixed(4);if(t>=l.t[0])lastIdx=i;
+    legEls[i].style.strokeWidth=t>=108.5?4.2:3.2});
+  if(lastIdx>=0){const l=LEGS[lastIdx],f=eio(seg(t,l.t[0],l.t[1])),L=geoLen[lastIdx],d=Math.min(L*f,L-.01),p=geoEls[lastIdx].getPointAtLength(d),q=geoEls[lastIdx].getPointAtLength(Math.max(0,Math.min(L,d+(f>.99?-.6:.6))));carPt=[p.x,p.y];carA=Math.atan2((f>.99?p.y-q.y:q.y-p.y),(f>.99?p.x-q.x:q.x-p.x))*180/Math.PI}
+  if(t>=108.5){const d=loopLen*fe,p=loopGeo.getPointAtLength(Math.min(d,loopLen-.01)),q=loopGeo.getPointAtLength(Math.min(loopLen,d+.6));carPt=[p.x,p.y];if(fe<.999)carA=Math.atan2(q.y-p.y,q.x-p.x)*180/Math.PI;loopHi.style.opacity=fin>0?.9:0;loopHi.style.strokeDashoffset=(1-fe).toFixed(4)}else loopHi.style.opacity=0;
+  car.setAttribute('transform',`translate(${r1(carPt[0])},${r1(carPt[1])}) scale(${inv}) rotate(${r1(carA)})`);
+  const hm=hikeState('m',t),hg=hikeState('g',t);
+  hikeEls[0].style.strokeDashoffset=(1-hm.max).toFixed(4);hikeEls[1].style.strokeDashoffset=(1-hg.max).toFixed(4);
+  pinEls.forEach(({p,g,mk},i)=>{const pop=eback(seg(t,.6+i*.35,1.3+i*.35));g.style.opacity=seg(t,.6+i*.35,1+i*.35);
+    const reached=t>=p.reach;mk.setAttribute('fill',reached?p.col:'#0e1714');
+    const s=(1/z)*(t<3.5?pop:1);g.setAttribute('transform',`translate(${r1(P(p.c)[0])},${r1(P(p.c)[1])}) scale(${s.toFixed(4)})`)});
+  colEls.forEach(({c,g})=>{g.style.opacity=seg(t,c.reach,c.reach+.6)});
+  // counters
+  el.cMi.textContent=fmtN(pw(MILES,t));
+  const dh=pw(DRIVE,t);el.cDr.innerHTML=`${Math.floor(dh)}<small>h</small> ${String(Math.round((dh%1)*60)%60).padStart(2,'0')}<small>m</small>`;
+  const vert=HIKE.m.gain*HIKE.m.f(hm.max)+HIKE.g.gain*HIKE.g.f(hg.max);el.cEl.innerHTML=`${fmtN(vert)}<small>ft</small>`;
+  const ppm=KY/69*z;let mi=[1,2,5,10,20,25,50,100].find(m=>m*ppm>=70)||100;el.scaleBar.style.width=r1(mi*ppm)+'px';el.scaleTxt.textContent=`${mi} miles`;
+  // hud
+  const ck=clockAt(t);
+  if(ck){if(lastDay!==ck.day){el.hDay.textContent=THEMES[ck.day][0];el.hTheme.textContent=THEMES[ck.day][1];el.hDay.style.setProperty('--dc',DAYC[ck.day]);
+      el.sunR.textContent=fmtClock(SUN[ck.day][0]).replace(/ (AM|PM)/,'');el.sunS.textContent=fmtClock(SUN[ck.day][1]).replace(/ (AM|PM)/,'');lastDay=ck.day}
+    el.clock.textContent=fmtClock(ck.m);el.hudClock.style.opacity=1;
+    const[sr,ss]=SUN[ck.day],f=(ck.m-sr)/(ss-sr),fc=clamp(f),day=f>=0&&f<=1;
+    el.sunDot.setAttribute('cx',r1(75-60*Math.cos(Math.PI*fc)));el.sunDot.setAttribute('cy',r1(40-30*Math.sin(Math.PI*fc)));el.sunDot.setAttribute('fill',day?C.amber:'#0e1714');el.sunDot.setAttribute('stroke',day?'none':'#62756b');el.sunDot.setAttribute('stroke-width',2)}
+  else{const k=t<9?'intro':t<97?'safety':'end';if(lastDay!==k){el.hDay.style.setProperty('--dc',C.amber);el.hDay.textContent=k==='intro'?'November 21–23, 2026':k==='safety'?'Before we go':'November 21–23, 2026';el.hTheme.textContent=k==='intro'?'A proposal for a three-day road trip':k==='safety'?'Safety, logistics and check-ins':'Budget and summary';lastDay=k}el.hudClock.style.opacity=0}
+  // timeline
+  const tx=t<9?0:pw(tlX,t);tlFills.forEach((f,i)=>{const x0=i*300+(i?4:0),x1=i*300+296;f.style.strokeDashoffset=(1-clamp((tx-x0)/(x1-x0))).toFixed(4)});
+  tlCs.forEach((c,i)=>c.setAttribute('fill',t>=TLS[i][0]?DAYC[TLS[i][3]]:'#0e1714'));
+  // scenes
+  SCN.forEach(s=>{let o;if(s.t0===0)o=1-seg(t,s.t1-.3,s.t1+.4);else o=seg(t,s.t0-.4,s.t0+.3)*(1-seg(t,s.t1-.3,s.t1+.4));
+    s.el.style.opacity=o.toFixed(3);s.el.classList.toggle('on',o>.5);
+    if(o<=0){s.el.style.visibility='hidden';return}s.el.style.visibility='visible';
+    const L=t-s.t0,D=s.t1-s.t0;s.el.style.transform=`translateX(${r1((1-eout(seg(t,s.t0-.4,s.t0+.6)))*18)}px)`;
+    s.ins.forEach(({e,a,o:out})=>{let v=eout(seg(L,a,a+.7));if(out!=null)v*=1-seg(L,out,out+.5);e.style.opacity=v.toFixed(3);if(out==null)e.style.transform=`translateY(${r1((1-v)*14)}px)`;e.style.visibility=v<=0?'hidden':'visible'});
+    s.draws.forEach(({e,a,b})=>e.style.strokeDashoffset=(1-eio(seg(L,a,b))).toFixed(4));
+    s.pops.forEach(({e,a})=>{const u=seg(L,a,a+.55);e.style.opacity=seg(L,a,a+.15).toFixed(3);e.style.transform=`scale(${(u<=0?.3:lerp(.3,1,eback(u))).toFixed(3)})`});
+    s.grows.forEach(({e,a})=>e.style.transform=`scaleX(${eout(seg(L,a,a+.8)).toFixed(3)})`);
+    s.counts.forEach(({e,a,b,f,to})=>e.textContent='$'+fmtN(lerp(f,to,eout(seg(L,a,b)))));
+    if(s.update)s.update(L,s.el,D,t)});
+  // snow
+  sctx.clearRect(0,0,1600,900);const I=reduce?0:pw(SNOWK,t);
+  if(I>0){sctx.fillStyle='#eef2ec';const n=Math.floor(FL.length*I);for(let i=0;i<n;i++){const f=FL[i];const x=620+frac((f.x-620+Math.sin(t*.8+f.ph)*14+t*9)/980)*980,y=frac((f.y+t*f.s)/900)*900;sctx.globalAlpha=f.a*Math.min(1,I*2);sctx.beginPath();sctx.arc(x,y,f.r,0,6.283);sctx.fill()}sctx.globalAlpha=1}
+  updateBar(t);
+}
+
+// ---------- playback ----------
+let t=0,playing=!reduce,speed=1,last=null;
+const SPEEDS=[1,.75,.5,1.5];
+const playIco=$('#playIco');
+function setPlayIcon(){playIco.innerHTML=playing?'<rect x="5" y="4" width="3.4" height="12" rx="1" fill="currentColor"/><rect x="11.6" y="4" width="3.4" height="12" rx="1" fill="currentColor"/>':'<path d="M6 4l10 6-10 6z" fill="currentColor"/>';$('#bPlay').setAttribute('aria-label',playing?'Pause':'Play')}
+const chapBox=$('#chaps');
+CHAPTERS.forEach(([n,ct],i)=>{const b=document.createElement('button');b.className='chap';b.textContent=n;const nx=(CHAPTERS[i+1]||[0,DUR])[1];b.style.left=(ct/DUR*100)+'%';b.style.width=((nx-ct)/DUR*100)+'%';b.title=n;b.onclick=()=>seek(ct+.01);chapBox.appendChild(b)});
+const chapBtns=[...chapBox.children];
+const fmtT=s=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+function updateBar(t){const f=t/DUR*100;$('#scrubFill').style.width=f+'%';$('#scrubKnob').style.left=f+'%';$('#time').textContent=`${fmtT(t)} / ${fmtT(DUR)}`;$('#scrub').setAttribute('aria-valuenow',Math.round(t));$('#scrub').setAttribute('aria-valuetext',fmtT(t));
+  let ci=0;CHAPTERS.forEach((c,i)=>{if(t>=c[1]-.001)ci=i});chapBtns.forEach((b,i)=>b.classList.toggle('cur',i===ci))}
+function seek(x){t=clamp(x,0,DUR);render(t)}
+function frame(ts){if(last==null)last=ts;const dt=Math.min(.1,(ts-last)/1000);last=ts;
+  if(playing){t+=dt*speed;if(t>=DUR){t=DUR;playing=false;setPlayIcon()}render(t);if(!reduce&&Math.random()<.6)$('#grain').style.backgroundPosition=`${Math.floor(Math.random()*160)}px ${Math.floor(Math.random()*160)}px`}
+  requestAnimationFrame(frame)}
+function toggle(){if(!playing&&t>=DUR)t=0;playing=!playing;setPlayIcon()}
+function chapIdx(){let ci=0;CHAPTERS.forEach((c,i)=>{if(t>=c[1]-.001)ci=i});return ci}
+$('#bPlay').onclick=toggle;
+$('#bReplay').onclick=()=>{seek(0);playing=true;setPlayIcon()};
+$('#bNext').onclick=()=>{const i=chapIdx();seek(i+1<CHAPTERS.length?CHAPTERS[i+1][1]+.01:DUR)};
+$('#bPrev').onclick=()=>{const i=chapIdx();const st=CHAPTERS[i][1];seek(t-st>1.5?st+.01:CHAPTERS[Math.max(0,i-1)][1]+.01)};
+$('#bSpeed').onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];$('#bSpeed').textContent=speed+'×'};
+const scrub=$('#scrub');let drag=false,wasPlaying=false;
+const scrubTo=e=>{const r=scrub.getBoundingClientRect();seek((e.clientX-r.left)/r.width*DUR)};
+scrub.addEventListener('pointerdown',e=>{drag=true;wasPlaying=playing;playing=false;scrub.setPointerCapture(e.pointerId);scrubTo(e)});
+scrub.addEventListener('pointermove',e=>{if(drag)scrubTo(e)});
+scrub.addEventListener('pointerup',()=>{drag=false;playing=wasPlaying;setPlayIcon()});
+scrub.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){seek(t+5);e.preventDefault();e.stopPropagation()}if(e.key==='ArrowLeft'){seek(t-5);e.preventDefault();e.stopPropagation()}});
+const plan=$('#plan');
+function setPlan(open){plan.classList.toggle('open',open);plan.setAttribute('aria-hidden',!open);$('#bPlan').setAttribute('aria-expanded',open);if(open){if(playing){playing=false;setPlayIcon()}$('#bClose').focus()}else $('#bPlan').focus()}
+$('#bPlan').onclick=()=>setPlan(!plan.classList.contains('open'));$('#bClose').onclick=()=>setPlan(false);
+document.addEventListener('keydown',e=>{if(plan.classList.contains('open')){if(e.key==='Escape')setPlan(false);return}
+  if(e.target.closest&&e.target.closest('button')&&(e.key===' '||e.key==='Enter'))return;
+  if(e.key===' '){e.preventDefault();toggle()}else if(e.key==='ArrowRight')$('#bNext').click();else if(e.key==='ArrowLeft')$('#bPrev').click()});
+// scale stage
+const wrap=$('#wrap'),stage=$('#stage');
+function fit(){const w=wrap.clientWidth,h=wrap.clientHeight,s=Math.min(w/1600,h/900);stage.style.transform=`translate(${r1((w-1600*s)/2)}px,${r1((h-900*s)/2)}px) scale(${s})`}
+addEventListener('resize',fit);fit();
+window.__seek=x=>{playing=false;setPlayIcon();seek(x)};
+function start(d){t=typeof d.t==='number'?d.t:(reduce?8.8:0);setPlayIcon();render(t);requestAnimationFrame(frame)}
+window.claude?.hot?.snapshot?.(()=>({t}));
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+})();
+</script>
+</body>
+</html>
